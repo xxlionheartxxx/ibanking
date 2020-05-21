@@ -15,22 +15,18 @@ app.get('/', (req, res) => {
   });
 })
 
-app.use((req, res, next) => {
-  next();
-  if (res.statusCode == 403) {
-    res.send('FORBIDDEN');
-  }
-})
-
 app.use('/v1/third-party/accounts', require('./routes/third-party/account.js'));
 
 app.use((req, res, next) => {
-  res.status(404).send('NOT FOUND');
+  res.status(404).send({errors:[{errorCode: 404, message:'NOT FOUND'}]});
 })
 
 app.use(function (err, req, res, next) {
   console.log(err.stack);
-  res.status(500).send('INTERNAL SERVER ERROR');
+  if (err.statusCode && err.body) {
+    return res.status(err.statusCode).send({errors:[{errorCode: err.statusCode, message:err.body}]});
+  }
+  res.status(500).send({errors:[{errorCode:500, message:'INTERNAL SERVER ERROR'}]});
 })
 
 const PORT = 9000;

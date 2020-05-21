@@ -22,11 +22,11 @@ const ThirdPartyAccount = database.define(
 
 ThirdPartyAccount.getByName = async (name) => {
   try {
-    const account = await ThirdPartyAccount.findAll({
-      limit: 1,
+    const account = await ThirdPartyAccount.findOne({
       where: {
         name: name
-      }
+      },
+      raw: true
     });
     return account
   } catch (error) {

@@ -1,5 +1,5 @@
 const Sequelize = require('sequelize');
-const database = require('../../db/db.js');
+const database = require('../db/db.js');
 
 const Account = database.define(
   'accounts',
@@ -21,13 +21,13 @@ const Account = database.define(
   { timestamps: false }
 );
 
-Account.getByNumber = async (number) => {
+Account.getByBankNumber = async (number) => {
   try {
-    const account = await ThirdPartyAccount.findAll({
-      limit: 1,
+    const account = await Account.findOne({
       where: {
         number: number
-      }
+      },
+      raw: true
     });
     return account
   } catch (error) {
