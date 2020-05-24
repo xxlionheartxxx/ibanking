@@ -7,12 +7,13 @@ const ThirdPartyAccount = database.define(
 
     id: {
       type: Sequelize.INTEGER,
-      primaryKey: true
+      primaryKey: true,
+      autoIncrement: true
     },
     name: {
       type: Sequelize.TEXT
     },
-    secret_key: {
+    pub_rsa_key: {
       type: Sequelize.TEXT
     }
 

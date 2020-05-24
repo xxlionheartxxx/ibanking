@@ -1,21 +1,24 @@
 const Sequelize = require('sequelize');
 const database = require('../db/db.js');
 
-const Account = database.define(
-  'accounts',
+const PartnerTopupTransaction = database.define(
+  'partner_topup_transactions',
   {
     id: {
       type: Sequelize.INTEGER,
       primaryKey: true,
-      autoIncrement: true
+      autoIncrement: true,
     },
-    name: {
+    bank_number: {
       type: Sequelize.TEXT
     },
-    number: {
-      type: Sequelize.TEXT
+    transaction_id: {
+      type: Sequelize.BIGINT
     },
-    money: {
+    amount: {
+      type: Sequelize.BIGINT
+    },
+    partner_id: {
       type: Sequelize.BIGINT
     },
     created_at: {
@@ -34,18 +37,18 @@ const Account = database.define(
   { timestamps: false }
 );
 
-Account.getByBankNumber = async (number) => {
+PartnerTopupTransaction.getByTransactionId = async (transactionId) => {
   try {
-    const account = await Account.findOne({
+    const transaction = await PartnerTopupTransaction.findOne({
       where: {
-        number: number
+        transaction_id: transactionId
       },
       raw: true
     });
-    return account
+    return transaction
   } catch (error) {
     return error
   }
 };
 
-module.exports = Account;
+module.exports = PartnerTopupTransaction;
