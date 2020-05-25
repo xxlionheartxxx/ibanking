@@ -6,30 +6,26 @@ const Account = require('../../models/account.js');
 const PartnerTopupTransaction = require('../../models/partner_topup_transaction.js');
 const Response = require('../../utils/response.js');
 const ibCrypto = require('../../utils/cryto.js');
-const { check, validationResult } = require('express-validator');
+const { check, query, validationResult } = require('express-validator');
 const sequelize = require('../../db/db.js');
 const { QueryTypes } = require('sequelize');
 
 // Get bank name by bank number
 router.use('/', validateThirdPartyGetAccount());
 router.get('/', [
-  check('bankNumber').notEmpty().withMessage('bankNumber is require')
+  query('bankNumber').notEmpty().withMessage('bankNumber is require')
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  let bankNumber = req.body.bankNumber;
-  if (!bankNumber) {
-    return Response.SendMessaageRes(res.status(400), "bankNumber require");
-  }
-
+  let bankNumber = req.query.bankNumber;
   let bankAccount = await Account.getByBankNumber(bankNumber);
   if (!bankAccount) {
     return Response.SendMessaageRes(res.status(400), "bankNumber is not exists");
   }
-  Response.Ok(res, {"bankName": bankNumber});
+  Response.Ok(res, {"bankName": bankAccount.name});
 });
 
 // Topup
@@ -70,7 +66,7 @@ router.post('/topup',  async (req, res) => {
       });
     t.commit();
     // Sign
-    const sign = ibCrypto.RSASign(ibCrypto.MyPrivateRSAKey, ''+newTransaction.id)
+    const sign = ibCrypto.RSASign(''+newTransaction.id, 'base64')
     return Response.Ok(res, {id: newTransaction.id, signature: sign})
   } catch (error) {
     console.log(error)

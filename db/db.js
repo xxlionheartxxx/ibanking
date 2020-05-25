@@ -1,5 +1,5 @@
 const Sequelize = require('sequelize');
-const dbConfig = require('../config/config.js');
+const dbConfig = require('../config/config.js').dbConfig;
 
 // your credentials
 DATABASE_URL = `postgres://${dbConfig.user}:${dbConfig.password}@${dbConfig.host}:${dbConfig.port}/${dbConfig.db}`;

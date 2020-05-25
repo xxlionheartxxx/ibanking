@@ -5,4 +5,7 @@ const dbConfig = {
   port: process.env.DB_PORT || '5432',
   db: process.env.DB_DATABASE || 'ibanking',
 }
-module.exports = dbConfig
+module.exports = {
+  dbConfig,
+  myBankName: "37Bank"
+}
