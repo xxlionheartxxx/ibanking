@@ -85,7 +85,7 @@ function validateTopupSign() {
     if (req.body.amount <= 0) {
       return res.status(400).json({ errors: [{ errorCode: 400, message: 'amount is invalid'}] });
     }
-    let rawSign = req.body.bankNumber + req.body.transactionId + req.body.amount + req.body.message || ''
+    let rawSign = req.body.bankNumber + req.body.transactionId + req.body.amount + (req.body.message || '')
     if (!ibCrypto.VerifyRSASign(thirdPartyAccount.pub_rsa_key, req.body.signature, rawSign)) {
       return Response.SendMessaageRes(res.status(400), "Sign is invalid")
     }
