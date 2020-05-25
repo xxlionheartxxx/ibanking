@@ -21,6 +21,9 @@ const PartnerTopupTransaction = database.define(
     partner_id: {
       type: Sequelize.BIGINT
     },
+    message: {
+      type: Sequelize.TEXT
+    },
     created_at: {
       type: Sequelize.DATE
     },

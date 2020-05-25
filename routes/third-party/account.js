@@ -31,9 +31,9 @@ router.get('/', [
 // Topup
 router.use('/topup', [
   check('bankNumber').notEmpty().withMessage('bankNumber is require'),
-  check('bankName').notEmpty().withMessage('bankName is require'),
   check('transactionId').notEmpty().withMessage('transactionId is require'),
   check('amount').notEmpty().withMessage('amount is require'),
+  check('signature').notEmpty().withMessage('signature is require'),
 ],validateTopupSign());
 router.post('/topup',  async (req, res) => {
   let thirdPartyAccount = req._thirdPartyAccount;
@@ -53,6 +53,7 @@ router.post('/topup',  async (req, res) => {
     partner_id: thirdPartyAccount.id,
     transaction_id: req.body.transactionId,
     bank_number: req.body.bankNumber,
+    message: req.body.message,
     amount: req.body.amount,
   }
   try {
@@ -84,7 +85,7 @@ function validateTopupSign() {
     if (req.body.amount <= 0) {
       return res.status(400).json({ errors: [{ errorCode: 400, message: 'amount is invalid'}] });
     }
-    let rawSign = req.body.bankNumber + req.body.bankName + req.body.transactionId + req.body.amount
+    let rawSign = req.body.bankNumber + req.body.transactionId + req.body.amount + req.body.message || ''
     if (!ibCrypto.VerifyRSASign(thirdPartyAccount.pub_rsa_key, req.body.signature, rawSign)) {
       return Response.SendMessaageRes(res.status(400), "Sign is invalid")
     }
