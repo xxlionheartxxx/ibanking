@@ -81,10 +81,12 @@ async function callTopup24BankAccount (req, res, tpAccount) {
       },
       partner_code: partnerCode
   };
+  console.log(body)
 
   const text = partnerCode + requestTime + JSON.stringify(body) + secret_key;
   const hash = CryptoJS.SHA256(text).toString();
-  const signature = await signRequest(hash);
+  const signature = await ibCrypto.PGPSign(hash);
+  console.log(signature)
 
   const headers = {
       'Content-Type': 'application/json',
@@ -94,11 +96,12 @@ async function callTopup24BankAccount (req, res, tpAccount) {
       'x-partner-signature': `${signature}`
   }
 
-  axios.post(`https://crypto-bank-1612785.herokuapp.com/api/services/deposits/account_number/${req.query.bankNumber}`, body, {
+  axios.post(`https://crypto-bank-1612785.herokuapp.com/api/services/deposits/account_number/${req.body.bankNumber}`, body, {
       headers: headers
   }).then((response) => {
       return Response.Ok(res, response.body);
   }).catch((err) => {
+      console.log(err)
       return Response.SendMessaageRes(res.status(err.response.status), JSON.stringify(err.response.data))
   })
 }
@@ -129,27 +132,28 @@ function callGet24BankAccount(req, res, tpAccount) {
 
 function callTopup25BankAccount(req, res, tpAccount) {
   let tpBankNumber = req.body.bankNumber;
-  let encrypted = JSON.stringify({
+  let toEncrypted = JSON.stringify({
     'BankName': config.myBankName,
     'DestinationAccountNumber': Number(tpBankNumber),
+    'SourceAccountNumber': '123',
+    'SourceAccountName': config.myBankName,
     'Amount': req.body.amount,
     'Message': 'Topup',
     'iat': moment().valueOf()
   })
-  let buff = new Buffer(encrypted);
-  const sign = ibCrypto.RSASign(encrypted, 'base64')
   let reqBody = {
-    'Encrypted': buff.toString('base64'),
-    'Signed': sign,
+    'Encrypted': ibCrypto.Bank25RSAEncrypted(toEncrypted, tpAccount.pub_rsa_key),
+    'Signed': ibCrypto.RSASign(toEncrypted, 'base64'),
   }
   axios({
     method: 'post',
-    url: 'https://bank25.herokuapp.com/api/partner/account-bank/destination-account',
+    url: 'https://bank25.herokuapp.com/api/partner/account-bank/destination-account/recharge',
     data: reqBody
   }).then(function (response) {
       return Response.Ok(res, response.body);
     })
     .catch(function (err) {
+      console.log(err)
       return Response.SendMessaageRes(res.status(err.response.status), JSON.stringify(err.response.data))
     })
 }
@@ -162,7 +166,6 @@ function callGet25BankAccount(req, res, tpAccount) {
     'iat': moment().valueOf()
   })
   let reqBody = {
-    //'Encrypted': buff.toString('base64'),
     'Encrypted': ibCrypto.Bank25RSAEncrypted(toEncrypted, tpAccount.pub_rsa_key),
     'Signed': ibCrypto.RSASign(toEncrypted, 'base64'),
   }
@@ -174,23 +177,9 @@ function callGet25BankAccount(req, res, tpAccount) {
       return Response.Ok(res, {'bankName': response.data.TenKhachHang});
     })
     .catch(function (err) {
+      console.log(err)
       return Response.SendMessaageRes(res.status(err.response.status), JSON.stringify(err.response.data))
     })
 }
 
-
-const signRequest = async (data) => {
-    const privateKeyArmored = JSON.parse(`"${ibCrypto.myPrivatePGPKey}"`); // convert '\n'
-    const passphrase = config.myBankName; // what the private key is encrypted with
- 
-    const { keys: [privateKey] } = await openpgp.key.readArmored(privateKeyArmored);
-    await privateKey.decrypt(passphrase);
- 
-    const { signature: detachedSignature } = await openpgp.sign({
-        message: openpgp.cleartext.fromText(data), // CleartextMessage or Message object
-        privateKeys: [privateKey],                            // for signing
-        detached: true
-    });
-    return JSON.stringify(detachedSignature);
-}
 module.exports = router;

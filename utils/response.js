@@ -13,7 +13,7 @@ module.exports = {
       return res.send({errors:[{errorCode: 500, message: message || 'INTERNAL SERVER ERROR'}]});
     }
     if (res.statusCode !== 0) {
-      return
+      return res.send({errors:[{errorCode: res.statusCode, message: message || 'INTERNAL SERVER ERROR'}]})
     }
   },
   Ok: function(res, data) {

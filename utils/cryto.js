@@ -1,5 +1,7 @@
 const crypto = require('crypto');
 const NodeRSA = require('node-rsa');
+const openpgp = require('openpgp');
+const config = require('../config/config.js')
 const myPrivateRSAKey = `-----BEGIN PRIVATE KEY-----
 MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAIh3rpGBjY6l1z5/G7UAAHBICjZpSbs0/YUKwE1h4H8heT8u0svCJdfGD+0sJH4l35QK5GB034LuzBQMri1SJt4ERVmVksllpjY/+BcMI8kF3o8SIFPqutcXYr4AG/s8/wP6JUYAa+fC20yFexPMi7hrPxMs3rb7vXWmtR1Hnwl1AgMBAAECgYB/Me4HuRTTzEde/OI6RhIilULPjDsovi89/dNXTM8OL4jvFxlqyT60ausVSHuLCInnVm+eZ9CcHS8h0N/XZibKk/1lEcw93IVzVH8YA6W76XIgmXNaRY8LX3tlNrVB7JnMJRBU5butUKrbVsocjBrPzn7asR3wOGDch5DiJvTF0QJBAL432mCeYNqqXvw0PngXuaIwUOpIkgsYYM82wwjkhss3VqY3PO5JPIuoOqounnY/UZc1ecZ/2w9DKM7Uv53onx8CQQC3qT60AIev1V5bI+8Y7SqRIrE9q2J71Y3f8Iy8IXD7uwAhCG4hko3thZkRCY6KYuHefKk1UShOggZEEGdaZAjrAkEAsPcvcFIIU4bLZaGJOJsB9fUzYjNvw2jDsCQHYP+Ss/7g2zRquFlkPZ2eLnO+ss4Hr0Bt8ZFDkLhvf7UIK/WeCwJAKPwyyvaHURzbZplZRQXABw1n4iw52QqqE3xZ263WycZMXBLGiOVsmMHEi8HHNmikoQLOu+A1j3eCsHO8rLZAKwJAHoqJX+eSDFFUk7EjH0DIyqUh60rlfY74Iy2QCcNW6/PDMWAE/T5X4CPYceFwsAqg6Zr7FJTOiluMJq+mQ3hxfw==
 -----END PRIVATE KEY-----`
@@ -113,15 +115,28 @@ function rsaSign(rawMessage, encoding) {
     return privateKey.sign(buffRawMessage, encoding || 'base64')
 }
 
-function Bank25RSAEncrypted(rawMessage, rawPublicKey) {
+function bank25RSAEncrypted(rawMessage, rawPublicKey) {
+    const publicKey = NodeRSA(rawPublicKey)
     const buffRawMessage = new Buffer(rawMessage)
-    const publicKey = crypto.createPublicKey(rawPublicKey)
-    const buff = crypto.publicEncrypt(publicKey, buffRawMessage);
-    return buff.toString('base64')
+    return publicKey.encrypt(buffRawMessage, 'base64')
 }
 
+const pgpSign = async (data) => {
+   // const privateKeyArmored = JSON.parse(`"${myPrivatePGPKey}"`); // convert '\n'
+    const passphrase = config.myBankName; // what the private key is encrypted with
+    const { keys:[privateKey]}  = await openpgp.key.readArmored(myPrivatePGPKey);
+    await privateKey.decrypt(passphrase);
+ 
+    const { signature: detachedSignature } = await openpgp.sign({
+        message: openpgp.cleartext.fromText(data), // CleartextMessage or Message object
+        privateKeys: [privateKey],                            // for signing
+        detached: true
+    });
+    return JSON.stringify(detachedSignature);
+}
 module.exports = {
   VerifyRSASign: verifyRSASign,
   RSASign: rsaSign,
-  Bank25RSAEncrypted: Bank25RSAEncrypted
+  PGPSign: pgpSign,
+  Bank25RSAEncrypted: bank25RSAEncrypted
 }
