@@ -31,15 +31,15 @@ router.get('/', [
 // Topup
 router.use('/topup', [
   check('bankNumber').notEmpty().withMessage('bankNumber is require'),
-  check('transactionId').notEmpty().withMessage('transactionId is require'),
+  check('requestId').notEmpty().withMessage('requestId is require'),
   check('amount').notEmpty().withMessage('amount is require'),
   check('signature').notEmpty().withMessage('signature is require'),
 ],validateTopupSign());
 router.post('/topup',  async (req, res) => {
   let thirdPartyAccount = req._thirdPartyAccount;
-  let transaction = await PartnerTopupTransaction.getByTransactionId(req.body.transactionId);
+  let transaction = await PartnerTopupTransaction.getByTransactionIdAndPartnerId(req.body.requestId, thirdPartyAccount.id);
   if (transaction) {
-    return Response.SendMessaageRes(res.status(400), "Duplicate transaction id")
+    return Response.SendMessaageRes(res.status(400), "Duplicate request id")
   }
 
   let account = await Account.getByBankNumber(req.body.bankNumber);
@@ -51,7 +51,7 @@ router.post('/topup',  async (req, res) => {
   // New transaction
   let newTransaction = {
     partner_id: thirdPartyAccount.id,
-    transaction_id: req.body.transactionId,
+    request_id: req.body.requestId,
     bank_number: req.body.bankNumber,
     message: req.body.message,
     amount: req.body.amount,
@@ -68,7 +68,7 @@ router.post('/topup',  async (req, res) => {
     t.commit();
     // Sign
     const sign = ibCrypto.RSASign(''+newTransaction.id, 'base64')
-    return Response.Ok(res, {id: newTransaction.id, signature: sign})
+    return Response.Ok(res, {transactionId: newTransaction.id, signature: sign})
   } catch (error) {
     console.log(error)
     await t.rollback();
@@ -85,7 +85,7 @@ function validateTopupSign() {
     if (req.body.amount <= 0) {
       return res.status(400).json({ errors: [{ errorCode: 400, message: 'amount is invalid'}] });
     }
-    let rawSign = req.body.bankNumber + req.body.transactionId + req.body.amount + (req.body.message || '')
+    let rawSign = req.body.bankNumber + req.body.requestId + req.body.amount + (req.body.message || '')
     if (!ibCrypto.VerifyRSASign(thirdPartyAccount.pub_rsa_key, req.body.signature, rawSign)) {
       return Response.SendMessaageRes(res.status(400), "Sign is invalid")
     }

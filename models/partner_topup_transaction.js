@@ -12,7 +12,7 @@ const PartnerTopupTransaction = database.define(
     bank_number: {
       type: Sequelize.TEXT
     },
-    transaction_id: {
+    request_id: {
       type: Sequelize.BIGINT
     },
     amount: {
@@ -40,11 +40,12 @@ const PartnerTopupTransaction = database.define(
   { timestamps: false }
 );
 
-PartnerTopupTransaction.getByTransactionId = async (transactionId) => {
+PartnerTopupTransaction.getByTransactionIdAndPartnerId = async (requestId, partnerId) => {
   try {
     const transaction = await PartnerTopupTransaction.findOne({
       where: {
-        transaction_id: transactionId
+        request_id: requestId,
+        partner_id: partnerId
       },
       raw: true
     });
