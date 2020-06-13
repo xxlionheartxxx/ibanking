@@ -7,5 +7,6 @@ const dbConfig = {
 }
 module.exports = {
   dbConfig,
-  myBankName: "37Bank"
+  myBankName: "37Bank",
+	saltRounds: 10
 }

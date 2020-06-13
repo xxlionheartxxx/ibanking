@@ -19,6 +19,8 @@ app.use('/v1/third-party/accounts', require('./routes/third-party/account.js'));
 
 app.use('/v1/accounts', require('./routes/account.js'));
 
+app.use('/v1/employees', require('./routes/employees.js'));
+
 app.use((req, res, next) => {
   res.status(404).send({errors:[{errorCode: 404, message:'NOT FOUND'}]});
 })
