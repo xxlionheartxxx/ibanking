@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import {useHistory, useLocation} from 'react-router-dom'
 import { Button, FormGroup, FormControl, FormLabel } from "react-bootstrap";
 import axios from 'axios';
 import Config from '../config/config';
@@ -8,6 +9,9 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [hiddenWarningLogin, setHiddenWarningLogin] = useState(true);
+  let history = useHistory();
+  let location = useLocation();
+  let { from } = location.state || { from: { pathname: "/" } };
 
   function validateForm() {
     return username.length > 0 && password.length > 0;
@@ -23,6 +27,7 @@ export default function Login() {
         setHiddenWarningLogin(true)
         localStorage.setItem('37ibanking.accessToken', resp.data.data.accessToken)
         localStorage.setItem('37ibanking.refreshToken', resp.data.data.refreshToken)
+        history.replace(from);
       })
       .catch(err => {
         setHiddenWarningLogin(false)

@@ -8,5 +8,7 @@ const dbConfig = {
 module.exports = {
   dbConfig,
   myBankName: "37Bank",
-	saltRounds: 10
+  jwtSecret: "37Bank2231",
+  jwtExpiresIn: "1h",
+  saltRounds: 10
 }

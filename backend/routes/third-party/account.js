@@ -59,10 +59,10 @@ router.post('/topup',  async (req, res) => {
   try {
     newTransaction = await PartnerTopupTransaction.create(newTransaction, {transaction: t});
     // update money
-    await sequelize.query("UPDATE accounts SET money = money + :amount", 
+    await sequelize.query("UPDATE accounts SET money = money + :amount WHERE number = :bankNumber", 
       { 
         type: QueryTypes.UPDATE,
-        replacements: {amount: req.body.amount},
+        replacements: {amount: req.body.amount, bankNumber: req.body.bankNumber},
         transaction: t
       });
     t.commit();

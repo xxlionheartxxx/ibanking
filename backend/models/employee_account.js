@@ -1,5 +1,6 @@
 const Sequelize = require('sequelize');
 const database = require('../db/db.js');
+const { QueryTypes } = require('sequelize');
 
 const EmployeeAccount = database.define(
   'employee_accounts',
@@ -16,7 +17,10 @@ const EmployeeAccount = database.define(
       type: Sequelize.TEXT
     },
     password: {
-      type: Sequelize.BIGINT
+      type: Sequelize.TEXT
+    },
+    refresh_token: {
+      type: Sequelize.TEXT
     },
     created_at: {
       type: Sequelize.DATE
@@ -44,6 +48,19 @@ EmployeeAccount.getByUsername = async (username) => {
     });
     return account
   } catch (error) {
+    return error
+  }
+};
+
+EmployeeAccount.updateRefreshTokenByAccountId = async (accountId, refreshToken) => {
+  try {
+    database.query(
+      "UPDATE employee_accounts SET refresh_token = :token WHERE id = :accountId", {
+        type: QueryTypes.UPDATE,
+        replacements: {token: refreshToken, accountId: accountId}
+      });
+  } catch (error) {
+		console.log(error)
     return error
   }
 };
