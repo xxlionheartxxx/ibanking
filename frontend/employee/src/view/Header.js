@@ -4,7 +4,8 @@ import './stype/Header.css'
 class Header extends React.Component {
   render() {
     return (
-      <div className="Header_Wrap">Header</div>
+      <div className="Header_Wrap">
+      </div>
     );
   }
 }
