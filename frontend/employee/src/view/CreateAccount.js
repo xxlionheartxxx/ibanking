@@ -1,6 +1,8 @@
-import React, { useState }from 'react';
+import React from 'react';
 import './stype/CreateAccount.css';
-import { Button, FormGroup, FormControl, FormLabel } from "react-bootstrap";
+import { Button, FormGroup, FormControl } from "react-bootstrap";
+import axios from 'axios';
+import Config from '../config/config';
 
 class CreateAccount extends React.Component {
   constructor(props) {
@@ -12,12 +14,29 @@ class CreateAccount extends React.Component {
       phonenumber: "",
       email: "",
     };
+    this.handleSubmit = this.handleSubmit.bind(this);
   }
 
+
+  handleSubmit(event){
+      event.preventDefault();
+      console.log(this)
+      axios.post(`${Config.BEUrl}/v1/accounts`, {
+          username: this.state.username,
+          password: this.state.password,
+          name: this.state.name,
+          phonenumber: this.state.phonenumber,
+          email: this.state.email,
+        })
+        .then(resp => {
+        })
+        .catch(_ => {
+        })
+  }
   render() {
     return (
       <div className="CreateAccount">
-        <form onSubmit={handleSubmit()}>
+        <form onSubmit={this.handleSubmit}>
           <FormGroup controlId="username">
             <p>Tên đăng nhập</p>
             <FormControl
@@ -49,15 +68,16 @@ class CreateAccount extends React.Component {
               type="email"
             />
           </FormGroup>
-          <FormGroup controlId="phone">
+          <FormGroup controlId="phonenumber">
             <p>Số điện thoại</p>
             <FormControl
               value={this.state.phonenumber}
-              onChange={e => {this.setState({phone: e.target.value})}}
-              type="password"
+              onChange={e => {this.setState({phonenumber: e.target.value})}}
+              type="tel"
+              placeholder="0932747969"
             />
           </FormGroup>
-          <Button block disabled={!validateForm()} type="submit">
+          <Button block type="submit">
             Tạo
           </Button>
         </form>
@@ -66,6 +86,4 @@ class CreateAccount extends React.Component {
   }
 }
 
-function handleSubmit() {}
-function validateForm() {}
 export default CreateAccount;
