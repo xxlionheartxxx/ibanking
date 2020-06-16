@@ -1,0 +1,10 @@
+@media all and (min-width: 480px) {
+  .Main_Wrap {
+    width: 100%;
+    text-align: center;
+  }
+  .Term_Condition {
+    position: relative;
+    min-height: 647px;
+  }
+}
