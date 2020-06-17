@@ -2,7 +2,7 @@ const Sequelize = require('sequelize');
 const database = require('../db/db.js');
 
 const Transaction = database.define(
-  'topup_transactions',
+  'transactions',
   {
     id: {
       type: Sequelize.INTEGER,
@@ -37,20 +37,21 @@ const Transaction = database.define(
 Transaction.typeTopup = "topup"
 Transaction.typeBankTransfer = "bank_transfer"
 Transaction.typeDebtRemind = "debt_remind"
+Transaction.types = [Transaction.typeTopup, Transaction.typeBankTransfer, Transaction.typeDebtRemind]
 
 Transaction.getByAccountNumberAndType = async (accountNumber, type, page, limit) => {
   try {
-    const transaction = await TopupTransaction.find({
+    const transactions = await Transaction.findAll({
       where: {
         account_number: accountNumber,
-        type: type
+        type: type || Transaction.types
       },
-      limit: limit,
-      offset: (page-1)*limit,
+      limit: limit || 20,
+      offset: (page-1)*limit || 0,
       order: [['created_at', 'DESC']],
       raw: true
     });
-    return transaction
+    return transactions
   } catch (error) {
     return error
   }

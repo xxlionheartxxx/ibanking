@@ -22,7 +22,7 @@ class Topup extends React.Component {
       axios.put(`${Config.BEUrl}/v1/accounts/topup`, {
           accountNumber: this.state.account_number,
           username: this.state.username,
-          money: this.state.money,
+          amount: this.state.money,
         })
         .then(resp => {
         })

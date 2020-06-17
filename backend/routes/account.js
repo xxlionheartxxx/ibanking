@@ -3,7 +3,7 @@ const router = express.Router();
 const { check, query, validationResult } = require('express-validator');
 const ThirdPartyAccount = require('../models/third-partry/account.js');
 const Account = require('../models/account.js');
-const TopupTransaction = require('../models/topup_transaction.js');
+const Transaction = require('../models/transaction.js');
 const config = require('../config/config.js')
 const moment = require('moment')
 const Response = require('../utils/response.js');
@@ -11,21 +11,21 @@ const ibCrypto = require('../utils/cryto.js');
 const axios = require('axios');
 const CryptoJS = require('crypto-js');
 const openpgp = require('openpgp');
-const config = require('../config/config.js');
+const sequelize = require('../db/db.js');
+const { QueryTypes } = require('sequelize');
 const bcrypt = require('bcrypt');
 
-router.get('history-transactions', [
+router.get('/history-transactions', [
   check('accountNumber').notEmpty().withMessage('accountNumber is require'),
-  check('type').notEmpty().withMessage('type is require'),
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
   let accountNumber = req.query.accountNumber;
-  let account = await Account.getByAccountNumber(username, accountNumber)
+  let account = await Account.getByAccountNumber(accountNumber)
   if (!account) {
-    return Response.SendMessaageRes(res.status(400), "username or number is invalid");
+    return Response.SendMessaageRes(res.status(400), "accountNumber is invalid");
   }
   let type = req.query.type;
   let page = req.query.page;
@@ -67,10 +67,12 @@ router.put('/topup', [
         transaction: t
       });
     t.commit();
-    return Response.Ok(res, {transactionId: newTransaction.id, signature: sign})
   } catch (error) {
-    await t.rollback();
+    t.rollback();
+    console.log(error)
+    return Response.SendMessaageRes(res.status(500), "ERROR")
   }
+  return Response.Ok(res, {message: "Ok"})
 });
 
 router.post('/', [
@@ -87,7 +89,7 @@ router.post('/', [
 
   let username = req.body.username;
   let account = await Account.getByUsername(username);
-  if (!account) {
+  if (account) {
     return Response.SendMessaageRes(res.status(400), "username is invalid");
   }
   let newAccount = {
@@ -100,9 +102,22 @@ router.post('/', [
     created_by: req.requestById,
     updated_by: req.requestById,
   }
+
+  const t = await sequelize.transaction();
   try {
-    newAccount = await Account.create(newAccount)
+    newAccount = await Account.create(newAccount, {transaction: t})
+    console.log(newAccount.id)
+    // update money
+    await sequelize.query("UPDATE accounts SET number = :accountId WHERE id = :accountId", 
+      { 
+        type: QueryTypes.UPDATE,
+        replacements: {accountId: 370000 + newAccount.id},
+        transaction: t
+      });
+    t.commit()
   } catch (error) {
+    t.rollback()
+    console.log(error)
     return Response.SendMessaageRes(res.status(500), "ERROR")
   }
   return Response.Ok(res, newAccount)
