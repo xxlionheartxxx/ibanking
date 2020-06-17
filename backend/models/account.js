@@ -18,6 +18,18 @@ const Account = database.define(
     money: {
       type: Sequelize.BIGINT
     },
+    username: {
+      type: Sequelize.TEXT
+    },
+    password: {
+      type: Sequelize.TEXT
+    },
+    phonenumber: {
+      type: Sequelize.TEXT
+    },
+    email: {
+      type: Sequelize.TEXT
+    },
     created_at: {
       type: Sequelize.DATE
     },
@@ -34,11 +46,42 @@ const Account = database.define(
   { timestamps: false }
 );
 
-Account.getByBankNumber = async (number) => {
+Account.getByAccountNumber = async (number) => {
   try {
     const account = await Account.findOne({
       where: {
         number: number
+      },
+      raw: true
+    });
+    return account
+  } catch (error) {
+    return error
+  }
+};
+
+Account.getByUsernameOrNumber = async (username, accountNumber) => {
+  try {
+    const account = await Account.findOne({
+      where: {
+        [Sequelize.Op.or]: [
+          {username: username},
+          {number: accountNumber},
+        ],
+      },
+      raw: true
+    });
+    return account
+  } catch (error) {
+    return error
+  }
+};
+
+Account.getByUsername = async (username) => {
+  try {
+    const account = await Account.findOne({
+      where: {
+        username: username
       },
       raw: true
     });

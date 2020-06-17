@@ -70,7 +70,6 @@ router.post('/topup',  async (req, res) => {
     const sign = ibCrypto.RSASign(''+newTransaction.id, 'base64')
     return Response.Ok(res, {transactionId: newTransaction.id, signature: sign})
   } catch (error) {
-    console.log(error)
     await t.rollback();
   }
 });

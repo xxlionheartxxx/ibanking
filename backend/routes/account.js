@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { check, query, validationResult } = require('express-validator');
 const ThirdPartyAccount = require('../models/third-partry/account.js');
+const Account = require('../models/account.js');
+const TopupTransaction = require('../models/topup_transaction.js');
 const config = require('../config/config.js')
 const moment = require('moment')
 const Response = require('../utils/response.js');
@@ -9,6 +11,102 @@ const ibCrypto = require('../utils/cryto.js');
 const axios = require('axios');
 const CryptoJS = require('crypto-js');
 const openpgp = require('openpgp');
+const config = require('../config/config.js');
+const bcrypt = require('bcrypt');
+
+router.get('history-transactions', [
+  check('accountNumber').notEmpty().withMessage('accountNumber is require'),
+  check('type').notEmpty().withMessage('type is require'),
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  let accountNumber = req.query.accountNumber;
+  let account = await Account.getByAccountNumber(username, accountNumber)
+  if (!account) {
+    return Response.SendMessaageRes(res.status(400), "username or number is invalid");
+  }
+  let type = req.query.type;
+  let page = req.query.page;
+  let limit = req.query.limit;
+  let transactions = await Transaction.getByAccountNumberAndType(accountNumber, type, page, limit)
+  return Response.Ok(res, transactions)
+});
+
+router.put('/topup', [
+  check('amount').notEmpty().withMessage('name is require'),
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  let username = req.body.username;
+  let accountNumber = req.body.accountNumber;
+  let account = await Account.getByUsernameOrNumber(username, accountNumber)
+  if (!account) {
+    return Response.SendMessaageRes(res.status(400), "username or number is invalid");
+  }
+
+  const t = await sequelize.transaction();
+  // New transaction
+  let newTransaction = {
+    account_number: account.number,
+    amount: req.body.amount,
+    type: Transaction.typeTopup,
+    created_by: req.requestById,
+    updated_by: req.requestById,
+  }
+  try {
+    newTransaction = await Transaction.create(newTransaction, {transaction: t});
+    // update money
+    await sequelize.query("UPDATE accounts SET money = money + :amount WHERE number = :bankNumber", 
+      { 
+        type: QueryTypes.UPDATE,
+        replacements: {amount: req.body.amount, bankNumber: account.number},
+        transaction: t
+      });
+    t.commit();
+    return Response.Ok(res, {transactionId: newTransaction.id, signature: sign})
+  } catch (error) {
+    await t.rollback();
+  }
+});
+
+router.post('/', [
+  check('username').notEmpty().withMessage('username is require'),
+  check('password').notEmpty().withMessage('password is require'),
+  check('name').notEmpty().withMessage('name is require'),
+  check('email').notEmpty().withMessage('email is require'),
+  check('phonenumber').notEmpty().withMessage('phonenumber is require')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  let username = req.body.username;
+  let account = await Account.getByUsername(username);
+  if (!account) {
+    return Response.SendMessaageRes(res.status(400), "username is invalid");
+  }
+  let newAccount = {
+    username: req.body.username,
+    password: bcrypt.hashSync(req.body.password, config.saltRounds),
+    name: req.body.name,
+    email: req.body.email,
+    phonenumber: req.body.phonenumber,
+    money: 0,
+    created_by: req.requestById,
+    updated_by: req.requestById,
+  }
+  try {
+    newAccount = await Account.create(newAccount)
+  } catch (error) {
+    return Response.SendMessaageRes(res.status(500), "ERROR")
+  }
+  return Response.Ok(res, newAccount)
+});
 
 router.get('/third-party', [
   query('bankNumber').notEmpty().withMessage('bankNumber is require'),
@@ -62,8 +160,6 @@ function callTopupThirdPartyAccount(req, res, tpAccount) {
       return callTopup24BankAccount(req, res, tpAccount);
   }
 }
-
-
 
 async function callTopup24BankAccount (req, res, tpAccount) {
   const requestTime = moment().format();
