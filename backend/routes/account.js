@@ -27,10 +27,11 @@ router.get('/history-transactions', [
   if (!account) {
     return Response.SendMessaageRes(res.status(400), "accountNumber is invalid");
   }
-  let type = req.query.type;
+  let types = req.query.types.split(",");
   let page = req.query.page;
   let limit = req.query.limit;
-  let transactions = await Transaction.getByAccountNumberAndType(accountNumber, type, page, limit)
+  console.log(types)
+  let transactions = await Transaction.getByAccountNumberAndType(accountNumber, types, page, limit)
   return Response.Ok(res, transactions)
 });
 

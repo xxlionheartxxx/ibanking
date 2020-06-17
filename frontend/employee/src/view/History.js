@@ -45,7 +45,12 @@ class TableHistory extends React.Component {
       <tr key="heading">{headings.map(this.renderHeadingRow)}</tr>
     );
 
-    const tbodyMarkup = rows.map(this.renderRow);
+    const tbodyMarkup = () => {
+      if (rows.lenght > 0) {
+        return rows.map(this.renderRow)
+      }
+      return
+    };
     return (
       <div>
         <Table striped bordered hover>
@@ -61,7 +66,7 @@ class History extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      accountNumber: "1",
+      accountNumber: "",
       isTopup: false,
       isBankTransfer: false,
       isDebtRemind: false,
@@ -70,7 +75,17 @@ class History extends React.Component {
     this.handleSubmit = this.handleSubmit.bind(this);
   }
   callAPI() {
-    axios.get(`${Config.BEUrl}/v1/accounts/history-transactions?accountNumber=${this.state.accountNumber}`)
+    let types = []
+    if (this.state.isTopup) {
+      types = types.concat('topup')
+    }
+    if (this.state.isBankTransfer) {
+      types = types.concat('bank_transfer')
+    }
+    if (this.state.isDebtRemind) {
+      types = types.concat('debt_remind')
+    }
+    axios.get(`${Config.BEUrl}/v1/accounts/history-transactions?accountNumber=${this.state.accountNumber}&types=${types}`)
         .then(resp => {
           this.setState({rows: resp.data.data})
         })
@@ -102,7 +117,7 @@ class History extends React.Component {
              <div className="History">
                <Form.Control 
                  placeholder="Nhập tài khoản 370000" 
-                 onChange={e => {console.log(e.target);this.setState({accountNumber: e.target.value})}}
+                 onChange={e => this.setState({accountNumber: e.target.value})}
                />
              </div>
           </Form.Group>
