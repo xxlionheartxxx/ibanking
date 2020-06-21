@@ -7,7 +7,7 @@ function HomeIfLoginRoute({ children, ...rest }) {
     <Route
       {...rest}
       render={({ location }) =>
-        !localStorage.getItem('37ibanking.accessToken') ? (
+        !localStorage.getItem('37ibanking.accessToken.employee') ? (
           children
         ) : (
           <Redirect

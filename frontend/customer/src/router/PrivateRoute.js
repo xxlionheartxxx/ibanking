@@ -7,7 +7,7 @@ function PrivateRoute({ children, ...rest }) {
     <Route
       {...rest}
       render={({ location }) =>
-        localStorage.getItem('37ibanking.accesstoken') ? (
+        localStorage.getItem('37ibanking.accessToken.customer') ? (
           children
         ) : (
           <Redirect

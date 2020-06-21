@@ -14,6 +14,35 @@ const openpgp = require('openpgp');
 const sequelize = require('../db/db.js');
 const { QueryTypes } = require('sequelize');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
+router.put('/login', [ check('username').notEmpty().withMessage('username is require'),
+  check('password').notEmpty().withMessage('password is require')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  let account = await Account.getByUsername(req.body.username);
+  if (!account) {
+    return res.status(400).json({errors: [{errorCode: 400, message: "username or password is invalid"}]})
+  }
+  if (!bcrypt.compareSync(req.body.password, account.password)) {
+    return res.status(400).json({errors: [{errorCode: 400, message: "username or password is invalid"}]})
+  }
+  // Generate token
+  var accessToken = jwt.sign({id: account.id}, config.jwtSecret, {expiresIn: config.jwtExpiresIn});
+  var refreshToken = account.refreshToken
+  if (!refreshToken || refreshToken == "") {
+     refreshToken = jwt.sign({id: account.id}, config.jwtSecret);
+      await Account.updateRefreshTokenByAccountId(account.id, refreshToken)
+  }
+  Response.Ok(res, {
+    "refreshToken":refreshToken,
+    "accessToken":accessToken,
+  });
+})
 
 router.get('/history-transactions', [
   check('accountNumber').notEmpty().withMessage('accountNumber is require'),
@@ -109,10 +138,10 @@ router.post('/', [
     newAccount = await Account.create(newAccount, {transaction: t})
     console.log(newAccount.id)
     // update money
-    await sequelize.query("UPDATE accounts SET number = :accountId WHERE id = :accountId", 
+    await sequelize.query("UPDATE accounts SET number = :accountNumber WHERE id = :accountId", 
       { 
         type: QueryTypes.UPDATE,
-        replacements: {accountId: 370000 + newAccount.id},
+        replacements: {accountNumber: 370000 + newAccount.id, accountId: newAccount.id},
         transaction: t
       });
     t.commit()

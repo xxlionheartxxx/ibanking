@@ -1,5 +1,6 @@
 const Sequelize = require('sequelize');
 const database = require('../db/db.js');
+const { QueryTypes } = require('sequelize');
 
 const Account = database.define(
   'accounts',
@@ -87,6 +88,19 @@ Account.getByUsername = async (username) => {
     });
     return account
   } catch (error) {
+    return error
+  }
+};
+
+Account.updateRefreshTokenByAccountId = async (accountId, refreshToken) => {
+  try {
+    database.query(
+      "UPDATE accounts SET refresh_token = :token WHERE id = :accountId", {
+        type: QueryTypes.UPDATE,
+        replacements: {token: refreshToken, accountId: accountId}
+      });
+  } catch (error) {
+		console.log(error)
     return error
   }
 };

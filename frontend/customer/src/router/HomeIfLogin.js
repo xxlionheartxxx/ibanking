@@ -2,17 +2,17 @@ import React from 'react';
 import { Route, Redirect } from 'react-router-dom'
 // A wrapper for <Route> that redirects to the login
 // screen if you're not yet authenticated.
-function PrivateRoute({ children, ...rest }) {
+function HomeIfLoginRoute({ children, ...rest }) {
   return (
     <Route
       {...rest}
       render={({ location }) =>
-        localStorage.getItem('37ibanking.accessToken.employee') ? (
+        !localStorage.getItem('37ibanking.accessToken.customer') ? (
           children
         ) : (
           <Redirect
             to={{
-              pathname: "/login",
+              pathname: "/Home",
               state: { from: location }
             }}
           />
@@ -22,4 +22,4 @@ function PrivateRoute({ children, ...rest }) {
   );
 }
 
-export default PrivateRoute;
+export default HomeIfLoginRoute;

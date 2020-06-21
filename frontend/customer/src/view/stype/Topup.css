@@ -1,0 +1,15 @@
+@media all and (min-width: 480px) {
+  .Topup {
+    padding: 60px 0;
+  }
+
+  .Topup form {
+    margin: 0 auto;
+    max-width: 380px;
+  }
+  .Topup form p {
+    margin-left: 0;
+    text-align: left;
+    max-width: 380px;
+  }
+}

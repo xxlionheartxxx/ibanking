@@ -10,6 +10,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import Login from './view/Login'
 import Home from './view/Home'
 import PrivateRoute from './router/PrivateRoute'
+import HomeIfLoginRoute from './router/HomeIfLogin'
 
 class IBanking extends React.Component {
   render() {
@@ -17,9 +18,9 @@ class IBanking extends React.Component {
       <Router>
         <div>
           <Switch>
-            <Route path="/login">
+            <HomeIfLoginRoute path="/login">
               <Login />
-            </Route>
+            </HomeIfLoginRoute>
             <PrivateRoute path="/home">
               <Home />
             </PrivateRoute>
