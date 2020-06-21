@@ -28,6 +28,9 @@ const Account = database.define(
     phonenumber: {
       type: Sequelize.TEXT
     },
+    refresh_token: {
+      type: Sequelize.TEXT
+    },
     email: {
       type: Sequelize.TEXT
     },
@@ -69,6 +72,20 @@ Account.getByUsernameOrNumber = async (username, accountNumber) => {
           {username: username},
           {number: accountNumber},
         ],
+      },
+      raw: true
+    });
+    return account
+  } catch (error) {
+    return error
+  }
+};
+
+Account.getById = async (id) => {
+  try {
+    const account = await Account.findOne({
+      where: {
+        id: id
       },
       raw: true
     });

@@ -25,8 +25,8 @@ export default function Login() {
       })
       .then(resp => {
         setHiddenWarningLogin(true)
-        localStorage.setItem('37ibanking.accessToken', resp.data.data.accessToken)
-        localStorage.setItem('37ibanking.refreshToken', resp.data.data.refreshToken)
+        localStorage.setItem('37ibanking.accessToken.employee', resp.data.data.accessToken)
+        localStorage.setItem('37ibanking.refreshToken.employee', resp.data.data.refreshToken)
         history.replace(from);
       })
       .catch(err => {

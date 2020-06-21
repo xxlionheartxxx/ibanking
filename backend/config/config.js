@@ -9,6 +9,6 @@ module.exports = {
   dbConfig,
   myBankName: "37Bank",
   jwtSecret: "37Bank2231",
-  jwtExpiresIn: "1h",
+  jwtExpiresIn: "1y",
   saltRounds: 10
 }

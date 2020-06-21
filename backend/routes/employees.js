@@ -24,7 +24,7 @@ router.put('/login', [ check('username').notEmpty().withMessage('username is req
   }
   // Generate token
   var accessToken = jwt.sign({id: employeeAccount.id}, config.jwtSecret, {expiresIn: config.jwtExpiresIn});
-  var refreshToken = employeeAccount.refreshToken
+  var refreshToken = employeeAccount.refresh_token
   if (!refreshToken || refreshToken == "") {
      refreshToken = jwt.sign({id: employeeAccount.id}, config.jwtSecret);
       await EmployeeAccount.updateRefreshTokenByAccountId(employeeAccount.id, refreshToken)

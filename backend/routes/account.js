@@ -10,11 +10,21 @@ const Response = require('../utils/response.js');
 const ibCrypto = require('../utils/cryto.js');
 const axios = require('axios');
 const CryptoJS = require('crypto-js');
-const openpgp = require('openpgp');
 const sequelize = require('../db/db.js');
 const { QueryTypes } = require('sequelize');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+
+router.get('/', async(req, res) => {
+  let token = req.headers["authentication"]
+  console.log(req.headers)
+  if (!token) {
+    return Response.SendMessaageRes(res.status(401), "Reqire login" )
+  }
+  let decoded = jwt.verify(token, config.jwtSecret)
+  let account = await Account.getById(decoded.id);
+  return Response.Ok(res, account)
+})
 
 router.put('/login', [ check('username').notEmpty().withMessage('username is require'),
   check('password').notEmpty().withMessage('password is require')
@@ -33,7 +43,7 @@ router.put('/login', [ check('username').notEmpty().withMessage('username is req
   }
   // Generate token
   var accessToken = jwt.sign({id: account.id}, config.jwtSecret, {expiresIn: config.jwtExpiresIn});
-  var refreshToken = account.refreshToken
+  var refreshToken = account.refresh_token
   if (!refreshToken || refreshToken == "") {
      refreshToken = jwt.sign({id: account.id}, config.jwtSecret);
       await Account.updateRefreshTokenByAccountId(account.id, refreshToken)
