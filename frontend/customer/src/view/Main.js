@@ -3,6 +3,7 @@ import General from './General.js'
 import Receivers from './Receivers.js'
 import Transfer from './Transfer.js'
 import RemindDebt from './RemindDebt.js'
+import History from './History.js'
 import { Nav } from "react-bootstrap";
 import PrivateRoute from '../router/PrivateRoute'
 import './stype/Main.css'
@@ -28,6 +29,9 @@ class Main extends React.Component {
           <Nav.Item>
              <Nav.Link as={Link} to="/remind-debt">Nhắc nợ</Nav.Link>
           </Nav.Item>
+          <Nav.Item>
+             <Nav.Link as={Link} to="/history">Lịch sử giao dịch</Nav.Link>
+          </Nav.Item>
         </Nav>
         <Switch>
           <PrivateRoute path="/general">
@@ -42,10 +46,13 @@ class Main extends React.Component {
           <PrivateRoute path="/remind-debt">
             <RemindDebt />
           </PrivateRoute>
+          <PrivateRoute path="/history">
+            <History />
+          </PrivateRoute>
           <Route path="*">
             <Redirect
               to={{
-                pathname: "/create_account"
+                pathname: "/general"
               }}
             />
           </Route>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Col, Form } from "react-bootstrap";
+import { Button, Col, Form, Row } from "react-bootstrap";
 import './stype/General.css'
 import axios from 'axios';
 import Config from '../config/config';
@@ -9,7 +9,12 @@ class General extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      isDebtRemind: false,
+      name: "",
+      username: "",
+      email: "",
+      phonenumber: "",
+      number: "",
+      money: 0,
     };
   }
   callAPI() {
@@ -19,8 +24,16 @@ class General extends React.Component {
       headers:{"Authentication": `${localStorage.getItem('37ibanking.accessToken.customer')}`},
     })
         .then(resp => {
-          console.log(resp.data.data)
+          this.setState({
+            name: resp.data.data.name,
+            username: resp.data.data.username,
+            phonenumber: resp.data.data.phonenumber,
+            email: resp.data.data.email,
+            number: resp.data.data.number,
+            money: resp.data.data.money,
+          })
         })
+        .catch(error => {console.log(error.response)})
   }
   componentDidMount() {
     this.callAPI()
@@ -28,82 +41,67 @@ class General extends React.Component {
   render() {
     return (
       <div className="General">
-        <Form>
-          <Form.Row>
-            <Col>
-              <Form.Label>
-                Tên
-              </Form.Label>
-            </Col>
-            <Col>
+        <Form onSubmit={this.handleSubmit}>
+          <Form.Group as={Row}>
+            <Form.Label column sm={2}>Tên</Form.Label>
+            <Col sm={10}>
               <Form.Control
                 className="mb-2 mr-sm-2"
+                value={this.state.name || ""}
+                readOnly
               />
             </Col>
-          </Form.Row>
-          <Form.Row>
-            <Col>
-              <Form.Label>
-                Tên đăng nhập
-              </Form.Label>
-            </Col>
-            <Col>
+          </Form.Group>
+          <Form.Group as={Row}>
+            <Form.Label column sm={2}>Số điện thoại</Form.Label>
+            <Col sm={10}>
               <Form.Control
                 className="mb-2 mr-sm-2"
+                value={this.state.phonenumber || ""}
+                readOnly
               />
             </Col>
-          </Form.Row>
-          <Form.Row>
-            <Col>
-              <Form.Label>
-                Số tài khoản
-              </Form.Label>
-            </Col>
-            <Col>
+          </Form.Group>
+          <Form.Group as={Row}>
+            <Form.Label column sm={2}>Email</Form.Label>
+            <Col sm={10}>
               <Form.Control
                 className="mb-2 mr-sm-2"
+                value={this.state.email || ""}
+                readOnly
               />
             </Col>
-          </Form.Row>
-          <Form.Row>
-            <Col>
-              <Form.Label>
-                Số tài khoản
-              </Form.Label>
-            </Col>
-            <Col>
+          </Form.Group>
+          <Form.Group as={Row}>
+            <Form.Label column sm={2}>Tên đăng nhập</Form.Label>
+            <Col sm={10}>
               <Form.Control
                 className="mb-2 mr-sm-2"
+                value={this.state.username || ""}
+                readOnly
               />
             </Col>
-          </Form.Row>
-          <Form.Row>
-            <Col>
-              <Form.Label>
-                Email
-              </Form.Label>
-            </Col>
-            <Col>
+          </Form.Group>
+          <Form.Group as={Row}>
+            <Form.Label column sm={2}>Số tài khoản</Form.Label>
+            <Col sm={10}>
               <Form.Control
                 className="mb-2 mr-sm-2"
+                value={this.state.number || ""}
+                readOnly
               />
             </Col>
-          </Form.Row>
-          <Form.Row>
-            <Col>
-              <Form.Label>
-                Số dư
-              </Form.Label>
-            </Col>
-            <Col>
+          </Form.Group>
+          <Form.Group as={Row}>
+            <Form.Label column sm={2}>Số dư</Form.Label>
+            <Col sm={10}>
               <Form.Control
                 className="mb-2 mr-sm-2"
+                value={this.state.money || ""}
+                readOnly
               />
             </Col>
-          </Form.Row>
-          <Button type="submit" className="mb-2">
-            Sửa
-          </Button>
+          </Form.Group>
         </Form>
       </div>
     );

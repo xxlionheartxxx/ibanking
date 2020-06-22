@@ -20,7 +20,6 @@ class CreateAccount extends React.Component {
 
   handleSubmit(event){
       event.preventDefault();
-      console.log(this)
       axios.post(`${Config.BEUrl}/v1/accounts`, {
           username: this.state.username,
           password: this.state.password,

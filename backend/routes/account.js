@@ -17,13 +17,23 @@ const jwt = require('jsonwebtoken');
 
 router.get('/', async(req, res) => {
   let token = req.headers["authentication"]
-  console.log(req.headers)
   if (!token) {
     return Response.SendMessaageRes(res.status(401), "Reqire login" )
   }
-  let decoded = jwt.verify(token, config.jwtSecret)
-  let account = await Account.getById(decoded.id);
-  return Response.Ok(res, account)
+  try {
+    let decoded = jwt.verify(token, config.jwtSecret)
+    let account = await Account.getById(decoded.id);
+    return Response.Ok(res, {
+      id: account.id,
+      name: account.name,
+      number: account.number,
+      username: account.username,
+      money: account.money,
+      email: account.email,
+    })
+  } catch (error) {
+    return Response.SendMessaageRes(res.status(403), "Token expired")
+  }
 })
 
 router.put('/login', [ check('username').notEmpty().withMessage('username is require'),
