@@ -4,6 +4,7 @@ const { check, query, validationResult } = require('express-validator');
 const ThirdPartyAccount = require('../models/third-partry/account.js');
 const Account = require('../models/account.js');
 const Transaction = require('../models/transaction.js');
+const Receiver = require('../models/receiver.js');
 const config = require('../config/config.js')
 const moment = require('moment')
 const Response = require('../utils/response.js');
@@ -14,6 +15,20 @@ const sequelize = require('../db/db.js');
 const { QueryTypes } = require('sequelize');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+
+router.get('/receivers', async(req, res) => {
+  let token = req.headers["authentication"]
+  if (!token) {
+    return Response.SendMessaageRes(res.status(401), "Reqire login" )
+  }
+  try {
+    let decoded = jwt.verify(token, config.jwtSecret)
+    let receivers = await Receiver.getByCreatedBy(decoded.id);
+    return Response.Ok(res, receivers)
+  } catch (error) {
+    return Response.SendMessaageRes(res.status(403), "Token expired")
+  }
+})
 
 router.get('/', async(req, res) => {
   let token = req.headers["authentication"]

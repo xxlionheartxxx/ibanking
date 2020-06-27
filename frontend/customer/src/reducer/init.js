@@ -1,8 +1,8 @@
 import { combineReducers } from 'redux'
-import  pickReceiver  from './Receiver.js'
+import { receiver }  from './Receiver.js'
 
 const ibanking = combineReducers({
-  pickReceiver
+  receiver
 })
 
 export default ibanking

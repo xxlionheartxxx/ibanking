@@ -1,4 +1,8 @@
 export const Current_Receiver = 'Current_Receiver'
-export default function pickReceiver(receiver) {
+export const Set_Receivers = 'Set_Receivers'
+export function pickReceiver(receiver) {
   return { type: Current_Receiver, receiver }
+}
+export function setReceivers(receivers) {
+  return { type: Set_Receivers, receivers }
 }
