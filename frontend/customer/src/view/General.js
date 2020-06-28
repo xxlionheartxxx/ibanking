@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Col, Form, Row } from "react-bootstrap";
+import { Col, Form, Row } from "react-bootstrap";
 import './stype/General.css'
 import axios from 'axios';
 import Config from '../config/config';
@@ -41,7 +41,7 @@ class General extends React.Component {
   render() {
     return (
       <div className="General">
-        <Form onSubmit={this.handleSubmit}>
+        <Form>
           <Form.Group as={Row}>
             <Form.Label column sm={2}>Tên</Form.Label>
             <Col sm={10}>
