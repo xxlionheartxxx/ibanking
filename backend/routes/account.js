@@ -16,6 +16,70 @@ const { QueryTypes } = require('sequelize');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
+router.put('/receivers/:id',[
+  check('name').notEmpty().withMessage('name is require'),
+], async(req, res) => {
+  let token = req.headers["authentication"]
+  if (!token) {
+    return Response.SendMessaageRes(res.status(401), "Reqire login" )
+  }
+  try {
+    let decoded = jwt.verify(token, config.jwtSecret)
+    let receiver = await Receiver.updateName(req.body.name, decoded.id, req.params["id"]);
+    return Response.Ok(res, receiver)
+  } catch (error) {
+    return Response.SendMessaageRes(res.status(403), "Token expired")
+  }
+})
+
+router.post('/receivers', [
+  check('bank_name').notEmpty().withMessage('bank_name is require'),
+  check('bank_number').notEmpty().withMessage('bank_number is require'),
+  check('bank_account_name').notEmpty().withMessage('bank_account_name is require'),
+],async(req, res) => {
+  let token = req.headers["authentication"]
+  if (!token) {
+    return Response.SendMessaageRes(res.status(401), "Reqire login" )
+  }
+  try {
+    let decoded = jwt.verify(token, config.jwtSecret)
+    // validate bank name
+    if (!config.validBankName.includes(req.body.bank_name)) {
+      return Response.SendMessaageRes(res.status(400), "bank_name is invalid")
+    }
+    let receiver = Receiver.getByCreatedByAndBankNumber(decoded.id, req.body.bank_number)
+    if (receiver) {
+      return Response.Ok(res, {})
+    }
+    let data = {
+      name: req.body.name || req.body.bank_account_name,
+      bank_name: req.body.bank_name,
+      bank_account_name: req.body.bank_account_name,
+      bank_number: req.body.bank_number,
+      created_by: decoded.id,
+      updated_by: decoded.id,
+    }
+    receiver = await Receiver.create(data);
+    return Response.Ok(res, receiver)
+  } catch (error) {
+    return Response.SendMessaageRes(res.status(403), "Token expired")
+  }
+})
+
+router.delete('/receivers/:id', async(req, res) => {
+  let token = req.headers["authentication"]
+  if (!token) {
+    return Response.SendMessaageRes(res.status(401), "Reqire login" )
+  }
+  try {
+    let decoded = jwt.verify(token, config.jwtSecret)
+    await Receiver.deleteByCreatedByAndId(decoded.id, req.params["id"]);
+    return Response.Ok(res, {})
+  } catch (error) {
+    return Response.SendMessaageRes(res.status(403), "Token expired")
+  }
+})
+
 router.get('/receivers', async(req, res) => {
   let token = req.headers["authentication"]
   if (!token) {
@@ -29,6 +93,30 @@ router.get('/receivers', async(req, res) => {
     return Response.SendMessaageRes(res.status(403), "Token expired")
   }
 })
+router.get('/:bank_number', async(req, res)=> {
+  let token = req.headers["authentication"]
+  if (!token) {
+    return Response.SendMessaageRes(res.status(401), "Reqire login" )
+  }
+  try {
+    jwt.verify(token, config.jwtSecret)
+    let account = await Account.getByAccountNumber(req.params['bank_number']);
+    if (!account) {
+      return Response.Ok(res, {})
+    }
+    return Response.Ok(res, {
+      id: account.id,
+      name: account.name,
+      number: account.number,
+      username: account.username,
+      money: account.money,
+      email: account.email,
+    })
+  } catch (error) {
+    return Response.SendMessaageRes(res.status(403), "Token expired")
+  }
+})
+
 
 router.get('/', async(req, res) => {
   let token = req.headers["authentication"]
@@ -94,7 +182,6 @@ router.get('/history-transactions', [
   let types = req.query.types.split(",");
   let page = req.query.page;
   let limit = req.query.limit;
-  console.log(types)
   let transactions = await Transaction.getByAccountNumberAndType(accountNumber, types, page, limit)
   return Response.Ok(res, transactions)
 });

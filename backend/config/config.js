@@ -10,5 +10,6 @@ module.exports = {
   myBankName: "37Bank",
   jwtSecret: "37Bank2231",
   jwtExpiresIn: "1y",
-  saltRounds: 10
+  saltRounds: 10,
+  validBankName: ["37Bank", "24Bank", "25Bank"]
 }
