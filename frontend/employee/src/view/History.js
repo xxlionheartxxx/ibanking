@@ -20,7 +20,6 @@ class TableHistory extends React.Component {
 
   renderHeadingRow(_cell, cellIndex) {
     const {headings} = this.props;
-
     return this.cell(headings[cellIndex],true)
   };
   renderRow(_row, rowIndex) {
@@ -46,16 +45,13 @@ class TableHistory extends React.Component {
     );
 
     const tbodyMarkup = () => {
-      if (rows.lenght > 0) {
-        return rows.map(this.renderRow)
-      }
-      return
+      return rows.map(this.renderRow)
     };
     return (
       <div>
         <Table striped bordered hover>
           <thead>{theadMarkup}</thead>
-          <tbody>{tbodyMarkup}</tbody>
+          <tbody>{tbodyMarkup()}</tbody>
         </Table>
       </div>
     );
@@ -85,7 +81,11 @@ class History extends React.Component {
     if (this.state.isDebtRemind) {
       types = types.concat('debt_remind')
     }
-    axios.get(`${Config.BEUrl}/v1/accounts/history-transactions?accountNumber=${this.state.accountNumber}&types=${types}`)
+    axios({
+      method:"get",
+      url:`${Config.BEUrl}/v1/accounts/history-transactions?accountNumber=${this.state.accountNumber}&types=${types}`,
+      headers:{"Authentication": `${localStorage.getItem('37ibanking.accessToken.employee')}`},
+    })
         .then(resp => {
           this.setState({rows: resp.data.data})
         })
@@ -106,8 +106,6 @@ class History extends React.Component {
         'amount',
         'created_at',
         'updated_at',
-        'created_by',
-        'updated_by',
       ];
  
     return (

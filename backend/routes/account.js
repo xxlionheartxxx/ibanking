@@ -16,9 +16,15 @@ const { QueryTypes } = require('sequelize');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
+
 router.put('/receivers/:id',[
   check('name').notEmpty().withMessage('name is require'),
 ], async(req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   let token = req.headers["authentication"]
   if (!token) {
     return Response.SendMessaageRes(res.status(401), "Reqire login" )
@@ -37,6 +43,11 @@ router.post('/receivers', [
   check('bank_number').notEmpty().withMessage('bank_number is require'),
   check('bank_account_name').notEmpty().withMessage('bank_account_name is require'),
 ],async(req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   let token = req.headers["authentication"]
   if (!token) {
     return Response.SendMessaageRes(res.status(401), "Reqire login" )
@@ -80,6 +91,35 @@ router.delete('/receivers/:id', async(req, res) => {
   }
 })
 
+router.get('/history-transactions', [
+  check('accountNumber').notEmpty().withMessage('accountNumber is require'),
+], async (req, res) => {
+  let token = req.headers["authentication"]
+  if (!token) {
+    return Response.SendMessaageRes(res.status(401), "Reqire login" )
+  }
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  try {
+    let decoded = jwt.verify(token, config.jwtSecret)
+    let accountNumber = req.query.accountNumber;
+    let account = await Account.getByAccountNumber(accountNumber)
+    if (!account) {
+      return Response.SendMessaageRes(res.status(400), "accountNumber is invalid");
+    }
+    let types = req.query.types.split(",");
+    let page = req.query.page;
+    let limit = req.query.limit;
+    let transactions = await Transaction.getByAccountNumberAndType(accountNumber, types, page, limit)
+    return Response.Ok(res, transactions)
+  } catch (error) {
+    return Response.SendMessaageRes(res.status(403), "Token expired")
+  }
+});
+
+
 router.get('/receivers', async(req, res) => {
   let token = req.headers["authentication"]
   if (!token) {
@@ -93,7 +133,8 @@ router.get('/receivers', async(req, res) => {
     return Response.SendMessaageRes(res.status(403), "Token expired")
   }
 })
-router.get('/:bank_number', async(req, res)=> {
+
+router.get('/:bank_number',async(req, res)=> {
   let token = req.headers["authentication"]
   if (!token) {
     return Response.SendMessaageRes(res.status(401), "Reqire login" )
@@ -117,6 +158,72 @@ router.get('/:bank_number', async(req, res)=> {
   }
 })
 
+router.post('/:bank_number/transfer',[
+  check('bank_number').notEmpty().withMessage('bank_number is require'),
+  check('bank_name').notEmpty().withMessage('bank_name is require'),
+  check('money').notEmpty().withMessage('money is require'),
+  check('fee_for_me').notEmpty().withMessage('fee_for_me is require'),
+], async(req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  let token = req.headers["authentication"]
+  if (!token) {
+    return Response.SendMessaageRes(res.status(401), "Reqire login" )
+  }
+  let decoded = {}
+  try {
+    decoded = jwt.verify(token, config.jwtSecret)
+  } catch (error) {
+    return Response.SendMessaageRes(res.status(403), "Token expired")
+  }
+  let sourceAccount = await Account.getById(decoded.id)
+  if (!sourceAccount) {
+    return Response.SendMessaageRes(res.status(400), "bank_number is invalid");
+  }
+  let targetAccount = await Account.getByUsernameOrNumber("", req.body.bank_number)
+  if (!targetAccount) {
+    return Response.SendMessaageRes(res.status(400), "bank_number is invalid");
+  }
+
+  const t = await sequelize.transaction();
+  // New transaction
+  let newFirstTransaction = {
+    account_number: sourceAccount.number,
+    amount: req.body.money *-1,
+    type: Transaction.typeBankTransfer,
+    status: Transaction.statusProcessing,
+    created_by: decoded.id,
+    updated_by: decoded.id,
+  }
+  let newSecondTransaction = {
+    account_number: targetAccount.number,
+    amount: req.body.money,
+    type: Transaction.typeTopup,
+    status: Transaction.statusProcessing,
+    created_by: decoded.id,
+    updated_by: decoded.id,
+  }
+
+  // Generate OTP
+  otp = "1234567"
+  try {
+    await Transaction.create(newFirstTransaction, {transaction: t});
+    await Transaction.create(newSecondTransaction, {transaction: t});
+
+    t.commit();
+  } catch (error) {
+    t.rollback();
+    console.log(error)
+    return Response.SendMessaageRes(res.status(500), "ERROR")
+  }
+
+  // Send OTP
+  return Response.Ok(res, {transactionId: "Ok"})
+
+})
+
 
 router.get('/', async(req, res) => {
   let token = req.headers["authentication"]
@@ -131,6 +238,7 @@ router.get('/', async(req, res) => {
       name: account.name,
       number: account.number,
       username: account.username,
+      phonenumber: account.phonenumber,
       money: account.money,
       email: account.email,
     })
@@ -167,25 +275,6 @@ router.put('/login', [ check('username').notEmpty().withMessage('username is req
   });
 })
 
-router.get('/history-transactions', [
-  check('accountNumber').notEmpty().withMessage('accountNumber is require'),
-], async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-  let accountNumber = req.query.accountNumber;
-  let account = await Account.getByAccountNumber(accountNumber)
-  if (!account) {
-    return Response.SendMessaageRes(res.status(400), "accountNumber is invalid");
-  }
-  let types = req.query.types.split(",");
-  let page = req.query.page;
-  let limit = req.query.limit;
-  let transactions = await Transaction.getByAccountNumberAndType(accountNumber, types, page, limit)
-  return Response.Ok(res, transactions)
-});
-
 router.put('/topup', [
   check('amount').notEmpty().withMessage('name is require'),
 ], async (req, res) => {
@@ -193,6 +282,16 @@ router.put('/topup', [
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
+ let token = req.headers["authentication"]
+  if (!token) {
+    return Response.SendMessaageRes(res.status(401), "Reqire login" )
+  }
+  try {
+    let decoded = jwt.verify(token, config.jwtSecret)
+  } catch (error) {
+    return Response.SendMessaageRes(res.status(403), "Token expired")
+  }
+
   let username = req.body.username;
   let accountNumber = req.body.accountNumber;
   let account = await Account.getByUsernameOrNumber(username, accountNumber)
@@ -206,6 +305,7 @@ router.put('/topup', [
     account_number: account.number,
     amount: req.body.amount,
     type: Transaction.typeTopup,
+    status: Transaction.statusDone,
     created_by: req.requestById,
     updated_by: req.requestById,
   }
@@ -239,6 +339,17 @@ router.post('/', [
     return res.status(400).json({ errors: errors.array() });
   }
 
+ let token = req.headers["authentication"]
+  if (!token) {
+    return Response.SendMessaageRes(res.status(401), "Reqire login" )
+  }
+  let decoded = {}
+  try {
+     decoded = jwt.verify(token, config.jwtSecret)
+  } catch (error) {
+    return Response.SendMessaageRes(res.status(403), "Token expired")
+  }
+
   let username = req.body.username;
   let account = await Account.getByUsername(username);
   if (account) {
@@ -251,15 +362,14 @@ router.post('/', [
     email: req.body.email,
     phonenumber: req.body.phonenumber,
     money: 0,
-    created_by: req.requestById,
-    updated_by: req.requestById,
+    created_by: decoded.id,
+    updated_by: decoded.id,
   }
 
   const t = await sequelize.transaction();
   try {
     newAccount = await Account.create(newAccount, {transaction: t})
-    console.log(newAccount.id)
-    // update money
+    // update account
     await sequelize.query("UPDATE accounts SET number = :accountNumber WHERE id = :accountId", 
       { 
         type: QueryTypes.UPDATE,

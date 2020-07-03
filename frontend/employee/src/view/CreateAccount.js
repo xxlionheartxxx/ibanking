@@ -20,13 +20,18 @@ class CreateAccount extends React.Component {
 
   handleSubmit(event){
       event.preventDefault();
-      axios.post(`${Config.BEUrl}/v1/accounts`, {
+      axios({
+        method:"post",
+        url:`${Config.BEUrl}/v1/accounts`,
+        data:{
           username: this.state.username,
           password: this.state.password,
           name: this.state.name,
           phonenumber: this.state.phonenumber,
           email: this.state.email,
-        })
+        },
+      headers:{"Authentication": `${localStorage.getItem('37ibanking.accessToken.employee')}`},
+      })
         .then(resp => {
         })
         .catch(_ => {

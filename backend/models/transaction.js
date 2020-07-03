@@ -18,6 +18,9 @@ const Transaction = database.define(
     amount: {
       type: Sequelize.BIGINT
     },
+    status: {
+      type: Sequelize.TEXT
+    },
     created_at: {
       type: Sequelize.DATE
     },
@@ -34,6 +37,9 @@ const Transaction = database.define(
   { timestamps: false }
 );
 
+Transaction.statusProcessing = "processing"
+Transaction.statusDone = "done"
+Transaction.statusCancel = "cancel"
 Transaction.typeTopup = "topup"
 Transaction.typeBankTransfer = "bank_transfer"
 Transaction.typeDebtRemind = "debt_remind"
@@ -44,6 +50,7 @@ Transaction.getByAccountNumberAndType = async (accountNumber, type, page, limit)
     const transactions = await Transaction.findAll({
       where: {
         account_number: accountNumber,
+        status: Transaction.statusDone,
         type: type || Transaction.types
       },
       limit: limit || 20,

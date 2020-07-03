@@ -18,12 +18,16 @@ class Topup extends React.Component {
 
   handleSubmit(event){
       event.preventDefault();
-      console.log(this)
-      axios.put(`${Config.BEUrl}/v1/accounts/topup`, {
+      axios({
+        method: "put",
+        url:`${Config.BEUrl}/v1/accounts/topup`,
+        data:{
           accountNumber: this.state.account_number,
           username: this.state.username,
           amount: this.state.money,
-        })
+        },
+      headers:{"Authentication": `${localStorage.getItem('37ibanking.accessToken.employee')}`},
+      })
         .then(resp => {
         })
         .catch(_ => {
