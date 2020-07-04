@@ -13,6 +13,7 @@ class DetailTranferReceiver extends React.Component {
       bank_account_name:"",
       money:"",
       message:"",
+      otp:"",
       showOTP:false,
       transaction_id: 0,
       feeForMe:true,
@@ -31,7 +32,10 @@ class DetailTranferReceiver extends React.Component {
       method:`post`,
       url:`${Config.BEUrl}/v1/accounts/${this.state.bank_number}/transfer/otp`,
       headers:{"Authentication": `${localStorage.getItem('37ibanking.accessToken.customer')}`},
-      data: this.state,
+      data: {
+        transaction_id: this.state.transaction_id,
+        otp: this.state.otp,
+      },
     })
       .then(resp => {
         this.handleCloseOTP()

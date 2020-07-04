@@ -1,5 +1,6 @@
 const Sequelize = require('sequelize');
 const database = require('../db/db.js');
+const { QueryTypes } = require('sequelize');
 
 const Transaction = database.define(
   'transactions',
@@ -13,6 +14,9 @@ const Transaction = database.define(
       type: Sequelize.TEXT
     },
     account_number: {
+      type: Sequelize.TEXT
+    },
+    bank_name: {
       type: Sequelize.TEXT
     },
     amount: {
@@ -44,7 +48,6 @@ Transaction.typeTopup = "topup"
 Transaction.typeBankTransfer = "bank_transfer"
 Transaction.typeDebtRemind = "debt_remind"
 Transaction.types = [Transaction.typeTopup, Transaction.typeBankTransfer, Transaction.typeDebtRemind]
-
 Transaction.getByAccountNumberAndType = async (accountNumber, type, page, limit) => {
   try {
     const transactions = await Transaction.findAll({
@@ -60,8 +63,35 @@ Transaction.getByAccountNumberAndType = async (accountNumber, type, page, limit)
     });
     return transactions
   } catch (error) {
-    return error
+    throw new  error
   }
 };
+
+Transaction.updateDoneStatus = async (ids, t) => {
+  try {
+    await database.query(
+      "UPDATE transactions SET status = 'done' WHERE id IN (:ids)", {
+        type: QueryTypes.UPDATE,
+        replacements: {ids: ids},
+        transaction: t,
+      });
+  } catch (error) {
+    throw new  error
+  }
+}
+
+Transaction.getById = async (id) => {
+  try {
+    const transaction = await Transaction.findOne({
+      where: {
+        id: id
+      },
+      raw: true
+    })
+    return transaction
+  } catch (error) {
+    throw new  error
+  }
+}
 
 module.exports = Transaction;

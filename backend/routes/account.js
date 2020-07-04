@@ -4,6 +4,7 @@ const { check, query, validationResult } = require('express-validator');
 const ThirdPartyAccount = require('../models/third-partry/account.js');
 const Account = require('../models/account.js');
 const Transaction = require('../models/transaction.js');
+const TransactionOTP = require('../models/transaction_otp.js');
 const Receiver = require('../models/receiver.js');
 const config = require('../config/config.js')
 const moment = require('moment')
@@ -158,6 +159,56 @@ router.get('/:bank_number',async(req, res)=> {
   }
 })
 
+router.post('/:bank_number/transfer/otp', [
+  check('transaction_id').notEmpty().withMessage('bank_number is require'),
+  check('otp').notEmpty().withMessage('bank_name is require'),
+], async(req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  let token = req.headers["authentication"]
+  if (!token) {
+    return Response.SendMessaageRes(res.status(401), "Reqire login" )
+  }
+  let decoded = {}
+  try {
+    decoded = jwt.verify(token, config.jwtSecret)
+  } catch (error) {
+    return Response.SendMessaageRes(res.status(403), "Token expired")
+  }
+  let transactionOTP = await TransactionOTP.getById(req.body.transaction_id)
+  if (!transactionOTP || transactionOTP.verified) {
+    return Response.SendMessaageRes(res.status(400), "transaction_id is invalid")
+  }
+  if (transactionOTP.otp != req.body.otp) {
+    console.log(transactionOTP, req.body)
+    return Response.SendMessaageRes(res.status(400), "otp is invalid")
+  }
+
+  let srcTransaction = await Transaction.getById(transactionOTP.source_transaction_id)
+  let destTransaction = await Transaction.getById(transactionOTP.destination_transaction_id)
+
+  const t = await sequelize.transaction();
+  try {
+    // Update
+    await Account.updateMoneyByNumber(srcTransaction.amount, srcTransaction.account_number, t) 
+
+    if (destTransaction.bank_name == config.myBankName) {
+      await Account.updateMoneyByNumber(destTransaction.amount, destTransaction.account_number, t)
+    } else {
+      //Call third party
+    }
+    await Transaction.updateDoneStatus([destTransaction.id, srcTransaction.id], t)
+    await TransactionOTP.setVerified(transactionOTP.id, t)
+    t.commit()
+  } catch (error) {
+    t.rollback()
+    return Response.SendMessaageRes(res.status(500), "ERROR")
+  }
+  return Response.Ok(res, {})
+})
+
 router.post('/:bank_number/transfer',[
   check('bank_number').notEmpty().withMessage('bank_number is require'),
   check('bank_name').notEmpty().withMessage('bank_name is require'),
@@ -182,6 +233,10 @@ router.post('/:bank_number/transfer',[
   if (!sourceAccount) {
     return Response.SendMessaageRes(res.status(400), "bank_number is invalid");
   }
+  if (sourceAccount.money <= req.body.money) {
+    return Response.SendMessaageRes(res.status(400), "not enough money");
+  }
+
   let targetAccount = await Account.getByUsernameOrNumber("", req.body.bank_number)
   if (!targetAccount) {
     return Response.SendMessaageRes(res.status(400), "bank_number is invalid");
@@ -189,16 +244,18 @@ router.post('/:bank_number/transfer',[
 
   const t = await sequelize.transaction();
   // New transaction
-  let newFirstTransaction = {
+  let sourceTransaction = {
     account_number: sourceAccount.number,
+    bank_name: config.myBankName,
     amount: req.body.money *-1,
     type: Transaction.typeBankTransfer,
     status: Transaction.statusProcessing,
     created_by: decoded.id,
     updated_by: decoded.id,
   }
-  let newSecondTransaction = {
+  let destinationTransaction = {
     account_number: targetAccount.number,
+    bank_name: config.myBankName,
     amount: req.body.money,
     type: Transaction.typeTopup,
     status: Transaction.statusProcessing,
@@ -208,20 +265,26 @@ router.post('/:bank_number/transfer',[
 
   // Generate OTP
   otp = "1234567"
+  let newTransactionOTP = {}
   try {
-    await Transaction.create(newFirstTransaction, {transaction: t});
-    await Transaction.create(newSecondTransaction, {transaction: t});
+    sourceTransaction = await Transaction.create(sourceTransaction, {transaction: t});
+    destinationTransaction = await Transaction.create(destinationTransaction, {transaction: t});
 
+    newTransactionOTP = {
+      otp: otp,
+      source_transaction_id: sourceTransaction.id,
+      destination_transaction_id: destinationTransaction.id,
+      verified: false,
+    }
+    newTransactionOTP = await TransactionOTP.create(newTransactionOTP, {transaction: t});
     t.commit();
   } catch (error) {
     t.rollback();
-    console.log(error)
     return Response.SendMessaageRes(res.status(500), "ERROR")
   }
 
   // Send OTP
-  return Response.Ok(res, {transactionId: "Ok"})
-
+  return Response.Ok(res, {transaction_id: newTransactionOTP.id})
 })
 
 

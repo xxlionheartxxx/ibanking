@@ -1,3 +1,4 @@
+require('pg').defaults.parseInt8 = true
 const Sequelize = require('sequelize');
 const database = require('../db/db.js');
 const { QueryTypes } = require('sequelize');
@@ -109,15 +110,27 @@ Account.getByUsername = async (username) => {
   }
 };
 
+Account.updateMoneyByNumber = async (money, accountNumber, t) => {
+  try {
+   await database.query(
+      "UPDATE accounts SET money = money + (:amount) WHERE number = :bankNumber", {
+        type: QueryTypes.UPDATE,
+        replacements: {amount: money, bankNumber: accountNumber},
+        transaction: t,
+      });
+  } catch (error) {
+    return error
+  }
+};
+
 Account.updateRefreshTokenByAccountId = async (accountId, refreshToken) => {
   try {
-    database.query(
+    await database.query(
       "UPDATE accounts SET refresh_token = :token WHERE id = :accountId", {
         type: QueryTypes.UPDATE,
         replacements: {token: refreshToken, accountId: accountId}
       });
   } catch (error) {
-		console.log(error)
     return error
   }
 };
