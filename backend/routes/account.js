@@ -105,17 +105,25 @@ router.get('/history-transactions', [
   }
   try {
     let decoded = jwt.verify(token, config.jwtSecret)
-    let accountNumber = req.query.accountNumber;
-    let account = await Account.getByAccountNumber(accountNumber)
+    let account = {}
+    if (req.query.accountNumber == 'me'){
+      account = await Account.getById(decoded.id)
+    } else {
+      account = await Account.getByAccountNumber(req.query.accountNumber)
+    }
     if (!account) {
       return Response.SendMessaageRes(res.status(400), "accountNumber is invalid");
     }
-    let types = req.query.types.split(",");
+    let types = null
+    if (req.query.types) {
+      types = req.query.types.split(",");
+    }
     let page = req.query.page;
     let limit = req.query.limit;
-    let transactions = await Transaction.getByAccountNumberAndType(accountNumber, types, page, limit)
+    let transactions = await Transaction.getByAccountNumberAndType(account.number, types, page, limit)
     return Response.Ok(res, transactions)
   } catch (error) {
+    console.log(error)
     return Response.SendMessaageRes(res.status(403), "Token expired")
   }
 });
