@@ -1,5 +1,3 @@
-const express = require('express');
-const router = express.Router();
 const { check, query, validationResult } = require('express-validator');
 const ThirdPartyAccount = require('../models/third-partry/account.js');
 const Account = require('../models/account.js');
@@ -16,6 +14,8 @@ const sequelize = require('../db/db.js');
 const { QueryTypes } = require('sequelize');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+
+const router = require('./remind_debt.js');
 
 
 router.put('/receivers/:id',[
