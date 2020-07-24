@@ -37,11 +37,11 @@ router.get('/remind_debts/:id',[], async(req, res) => {
   }
   try {
     let decoded = jwt.verify(token, config.jwtSecret)
-    let remindDebts = {}
+    let remindDebts = []
     if (req.params['id'] === 'me') {
-      remindDebts = RemindDebt.getByDebtor(decoded.id)
+      remindDebts = await RemindDebt.getByDebtor(decoded.id)
     } else {
-      remindDebts = RemindDebt.getByCreatedBy(decoded.id)
+      remindDebts = await RemindDebt.getByCreatedBy(decoded.id)
     }
     return Response.Ok(res, remindDebts)
   } catch (error) {
@@ -64,7 +64,7 @@ router.post('/remind_debts',[
   }
   try {
     let decoded = jwt.verify(token, config.jwtSecret)
-    let debtor = Account.getByAccountNumber(req.body.debtor)
+    let debtor = await Account.getByAccountNumber(req.body.debtor)
     let data = {
       debtor: debtor.id,
       amount: req.body.amount,
