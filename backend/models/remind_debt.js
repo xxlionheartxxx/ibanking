@@ -40,13 +40,27 @@ const RemindDebt = database.define(
 RemindDebt.statusCancel = "cancel"
 RemindDebt.statusReminding = "reminding"
 RemindDebt.statusPaid = "paid"
-RemindDebt.updateStatus = async(remindDebtId, message, status) => {
+RemindDebt.updateStatus = async(remindDebtId, message, status, t) => {
   try {
-    database.query(
-      "UPDATE remind_debts SET message = :message, status = :statuts WHERE id = :remindDebtId", {
+    await database.query(
+      "UPDATE remind_debts SET message = :message, status = :status WHERE id = :remindDebtId", {
         type: QueryTypes.UPDATE,
-        replacements: {status: status, message: message, remindDebtId: remindDebtId}
+        replacements: {status: status, message: message, remindDebtId: remindDebtId},
+        transaction: t,
       });
+  } catch (error) {
+    console.log(error)
+  }
+}
+RemindDebt.getById = async(id) => {
+  try {
+    const remindDebt = await RemindDebt.findOne({
+      where: {
+        id: id,
+      },
+      raw: true
+    })
+    return remindDebt
   } catch (error) {
   }
 }

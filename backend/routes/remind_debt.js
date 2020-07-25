@@ -1,4 +1,6 @@
 const express = require('express');
+const Transaction = require('../models/transaction.js');
+const sequelize = require('../db/db.js');
 const router = express.Router();
 const { check, query, validationResult } = require('express-validator');
 const Response = require('../utils/response.js');
@@ -16,18 +18,59 @@ router.put('/remind_debts/:id',[
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
-
   let token = req.headers["authentication"]
   if (!token) {
     return Response.SendMessaageRes(res.status(401), "Reqire login" )
   }
+
+  let remindDebt = await RemindDebt.getById(req.params['id'])
+  const t = await sequelize.transaction();
   try {
-    jwt.verify(token, config.jwtSecret)
-    await RemindDebt.updateStatus(req.params['id'], req.body.message, req.body.status)
-    return Response.Ok(res, {})
+    let decoded = jwt.verify(token, config.jwtSecret)
+    if (req.body.status === RemindDebt.statusPaid) {
+      let sourceAccount = await Account.getById(remindDebt.debtor)
+      if (!sourceAccount) {
+        return Response.SendMessaageRes(res.status(400), "bank_number is invalid");
+      }
+      if (sourceAccount.money <= remindDebt.amount) {
+        return Response.SendMessaageRes(res.status(400), "not enough money");
+      }
+      let targetAccount = await Account.getById(remindDebt.created_by)
+      if (!targetAccount) {
+        return Response.SendMessaageRes(res.status(400), "bank_number is invalid");
+      }
+      // New transaction
+      let srcTransaction = {
+        account_number: sourceAccount.number,
+        bank_name: config.myBankName,
+        amount: remindDebt.amount *-1,
+        type: Transaction.typeDebtRemind,
+        status: Transaction.statusDone,
+        created_by: decoded.id,
+        updated_by: decoded.id,
+      }
+      let destTransaction = {
+        account_number: targetAccount.number,
+        bank_name: config.myBankName,
+        amount: remindDebt.amount,
+        type: Transaction.typeTopup,
+        status: Transaction.statusDone,
+        created_by: decoded.id,
+        updated_by: decoded.id,
+      }
+      srcTransaction = await Transaction.create(srcTransaction, {transaction: t});
+      destTransaction = await Transaction.create(destTransaction, {transaction: t});
+      await Account.updateMoneyByNumber(srcTransaction.amount, srcTransaction.account_number, t) 
+      await Account.updateMoneyByNumber(destTransaction.amount, destTransaction.account_number, t)
+    }
+    await RemindDebt.updateStatus(req.params['id'], req.body.message, req.body.status, t)
+    t.commit()
   } catch (error) {
+    console.log(error)
+    t.rollback()
     return Response.SendMessaageRes(res.status(403), "Token expired")
   }
+  return Response.Ok(res, {})
 })
 
 router.get('/remind_debts/:id',[], async(req, res) => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, ListGroup, Row, Accordion, Col, Container } from "react-bootstrap";
+import { Card, Button, ListGroup, Row, Accordion, Col, Container } from "react-bootstrap";
 import DetailDebtor from './DetailDebtor.js';
 import InternalReceiver from './InternalReceiver.js';
 import {pickDebtor} from '../action/Debtor.js'
@@ -41,6 +41,46 @@ class Debts extends React.Component{
       this.state.unsubcribe()
     }
   }
+  handlePaid(id) {
+    axios({
+      method:`put`,
+      url:`${Config.BEUrl}/v1/accounts/remind_debts/${id}`,
+      headers:{"Authentication": `${localStorage.getItem('37ibanking.accessToken.customer')}`},
+      data: {
+        message: "Tra",
+        status: "paid",
+      },
+    })
+        .then(resp => {
+          let debts = this.state.Debts.filter(item => item.id !== id)
+          if (this.state.typeSelect === "2") {
+            store.dispatch(setMyDebtors(debts))
+          } else {
+            store.dispatch(setMyDebts(debts))
+          }
+        })
+        .catch(error => {console.log(error)})
+  }
+  handleCancel(id) {
+    axios({
+      method:`put`,
+      url:`${Config.BEUrl}/v1/accounts/remind_debts/${id}`,
+      headers:{"Authentication": `${localStorage.getItem('37ibanking.accessToken.customer')}`},
+      data: {
+        message: "Huy",
+        status: "cancel",
+      },
+    })
+        .then(resp => {
+          let debts = this.state.Debts.filter(item => item.id !== id)
+          if (this.state.typeSelect === "2") {
+            store.dispatch(setMyDebtors(debts))
+          } else {
+            store.dispatch(setMyDebts(debts))
+          }
+        })
+        .catch(error => {console.log(error)})
+  }
   render() {
     if (this.state.typeSelect !== this.props.typeSelect) {
       if (this.props.typeSelect == "2") { 
@@ -57,8 +97,14 @@ class Debts extends React.Component{
           return (
             <ListGroup.Item action >
               <Row>
-                <div>{item.amount}</div>
-                <div>{item.amount}</div>
+                <Col>{item.amount}</Col>
+                <Col>{item.message}</Col>
+                <Col>
+                  <Button variant="success" hidden={this.state.typeSelect === "2"} onClick={() => this.handlePaid(item.id)}>Trả</Button>
+                </Col>
+                <Col>
+                  <Button variant="danger" onClick={() => this.handleCancel(item.id)}>Hủy</Button>
+                </Col>
               </Row>
             </ListGroup.Item>
           )
