@@ -59,8 +59,8 @@ router.post('/receivers', [
     if (!config.validBankName.includes(req.body.bank_name)) {
       return Response.SendMessaageRes(res.status(400), "bank_name is invalid")
     }
-    let receiver = Receiver.getByCreatedByAndBankNumber(decoded.id, req.body.bank_number)
-    if (receiver) {
+    let receiver = await Receiver.getByCreatedByAndBankNumber(decoded.id, req.body.bank_number)
+    if (receiver && receiver.length > 0) {
       return Response.Ok(res, {})
     }
     let data = {
@@ -143,6 +143,32 @@ router.get('/receivers', async(req, res) => {
   }
 })
 
+router.get('/third-party', [
+  query('bankNumber').notEmpty().withMessage('bankNumber is require'),
+  query('bankName').notEmpty().withMessage('bankName is require')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  let tpBankName = req.query.bankName;
+  let tpAccount = await ThirdPartyAccount.getByName(tpBankName);
+  if (!tpAccount) {
+    return Response.SendMessaageRes(res.status(400), "bankName is invalid");
+  }
+  return callGetThirdPartyAccount(req, res, tpAccount);
+});
+
+function callGetThirdPartyAccount(req, res, tpAccount) {
+  switch (tpAccount.name) {
+    case '25Bank':
+      return callGet25BankAccount(req, res, tpAccount);
+    case '24Bank':
+      return callGet24BankAccount(req, res, tpAccount);
+  }
+}
+
 router.get('/:bank_number',async(req, res)=> {
   let token = req.headers["authentication"]
   if (!token) {
@@ -206,6 +232,18 @@ router.post('/:bank_number/transfer/otp', [
       await Account.updateMoneyByNumber(destTransaction.amount, destTransaction.account_number, t)
     } else {
       //Call third party
+      let tpAccount = await ThirdPartyAccount.getByName(destTransaction.bank_name);
+      if (!tpAccount) {
+        return Response.SendMessaageRes(res.status(400), "bankName is invalid");
+      }
+      let newReq = {
+        body: {
+          amount: destTransaction.amount,
+          bankName: destTransaction.bank_name,
+          bankNumber: destTransaction.account_number,
+        },
+      }
+      await callTopupThirdPartyAccount(newReq, res, tpAccount);
     }
     await Transaction.updateDoneStatus([destTransaction.id, srcTransaction.id], t)
     await TransactionOTP.setVerified(transactionOTP.id, t)
@@ -244,12 +282,13 @@ router.post('/:bank_number/transfer',[
   if (sourceAccount.money <= req.body.money) {
     return Response.SendMessaageRes(res.status(400), "not enough money");
   }
-
-  let targetAccount = await Account.getByUsernameOrNumber("", req.body.bank_number)
-  if (!targetAccount) {
-    return Response.SendMessaageRes(res.status(400), "bank_number is invalid");
+  let targetAccount = null
+  if (req.body.bank_name === config.myBankName) {
+    targetAccount = await Account.getByUsernameOrNumber("", req.body.bank_number)
+    if (!targetAccount) {
+      return Response.SendMessaageRes(res.status(400), "bank_number is invalid");
+    }
   }
-
   const t = await sequelize.transaction();
   // New transaction
   let sourceTransaction = {
@@ -262,8 +301,8 @@ router.post('/:bank_number/transfer',[
     updated_by: decoded.id,
   }
   let destinationTransaction = {
-    account_number: targetAccount.number,
-    bank_name: config.myBankName,
+    account_number: req.body.bank_number,
+    bank_name: req.body.bank_name,
     amount: req.body.money,
     type: Transaction.typeTopup,
     status: Transaction.statusProcessing,
@@ -456,51 +495,7 @@ router.post('/', [
   return Response.Ok(res, newAccount)
 });
 
-router.get('/third-party', [
-  query('bankNumber').notEmpty().withMessage('bankNumber is require'),
-  query('bankName').notEmpty().withMessage('bankName is require')
-], async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  let tpBankName = req.query.bankName;
-  let tpAccount = await ThirdPartyAccount.getByName(tpBankName);
-  if (!tpAccount) {
-    return Response.SendMessaageRes(res.status(400), "bankName is invalid");
-  }
-  return callGetThirdPartyAccount(req, res, tpAccount);
-});
-
-function callGetThirdPartyAccount(req, res, tpAccount) {
-  switch (tpAccount.name) {
-    case '25Bank':
-      return callGet25BankAccount(req, res, tpAccount);
-    case '24Bank':
-      return callGet24BankAccount(req, res, tpAccount);
-  }
-}
-
-router.post('/third-party/topup', [
-  check('bankNumber').notEmpty().withMessage('bankNumber is require'),
-  check('bankName').notEmpty().withMessage('bankName is require'),
-  check('amount').notEmpty().withMessage('amount is require')
-], async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  let tpBankName = req.body.bankName;
-  let tpAccount = await ThirdPartyAccount.getByName(tpBankName);
-  if (!tpAccount) {
-    return Response.SendMessaageRes(res.status(400), "bankName is invalid");
-  }
-  return callTopupThirdPartyAccount(req, res, tpAccount);
-});
-
-function callTopupThirdPartyAccount(req, res, tpAccount) {
+async function callTopupThirdPartyAccount(req, res, tpAccount) {
   switch (tpAccount.name) {
     case '25Bank':
       return callTopup25BankAccount(req, res, tpAccount);
@@ -525,12 +520,11 @@ async function callTopup24BankAccount (req, res, tpAccount) {
       },
       partner_code: partnerCode
   };
-  console.log(body)
 
   const text = partnerCode + requestTime + JSON.stringify(body) + secret_key;
+  console.log(text)
   const hash = CryptoJS.SHA256(text).toString();
   const signature = await ibCrypto.PGPSign(hash);
-  console.log(signature)
 
   const headers = {
       'Content-Type': 'application/json',
@@ -540,13 +534,13 @@ async function callTopup24BankAccount (req, res, tpAccount) {
       'x-partner-signature': `${signature}`
   }
 
-  axios.post(`https://crypto-bank-1612785.herokuapp.com/api/services/deposits/account_number/${req.body.bankNumber}`, body, {
+  await axios.post(`https://crypto-bank-1612785.herokuapp.com/api/services/deposits/account_number/${req.body.bankNumber}`, body, {
       headers: headers
   }).then((response) => {
-      return Response.Ok(res, response.body);
+      return response
   }).catch((err) => {
       console.log(err)
-      return Response.SendMessaageRes(res.status(err.response.status), JSON.stringify(err.response.data))
+      throw new Error(err)
   })
 }
 
@@ -568,14 +562,14 @@ function callGet24BankAccount(req, res, tpAccount) {
   axios.get(`https://crypto-bank-1612785.herokuapp.com/api/services/account_number/${req.query.bankNumber}`, {
       headers: headers
   }).then((response) => {
-      return Response.Ok(res, {'bankName': response.data});
+      return Response.Ok(res, {'name': response.data.full_name});
   }).catch((err) => {
       return Response.SendMessaageRes(res.status(err.response.status), JSON.stringify(err.response.data))
   })
 }
 
-function callTopup25BankAccount(req, res, tpAccount) {
-  let tpBankNumber = req.body.bankNumber;
+async function callTopup25BankAccount(req, res, tpAccount) {
+  let tpBankNumber = req.body.bankNumber1;
   let toEncrypted = JSON.stringify({
     'BankName': config.myBankName,
     'DestinationAccountNumber': Number(tpBankNumber),
@@ -589,16 +583,17 @@ function callTopup25BankAccount(req, res, tpAccount) {
     'Encrypted': ibCrypto.Bank25RSAEncrypted(toEncrypted, tpAccount.pub_rsa_key),
     'Signed': ibCrypto.RSASign(toEncrypted, 'base64'),
   }
-  axios({
+  console.log(toEncrypted)
+  await axios({
     method: 'post',
     url: 'https://bank25.herokuapp.com/api/partner/account-bank/destination-account/recharge',
     data: reqBody
   }).then(function (response) {
-      return Response.Ok(res, response.body);
+      return response
     })
     .catch(function (err) {
       console.log(err)
-      return Response.SendMessaageRes(res.status(err.response.status), JSON.stringify(err.response.data))
+      throw new Error(err)
     })
 }
 
@@ -618,7 +613,7 @@ function callGet25BankAccount(req, res, tpAccount) {
     url: 'https://bank25.herokuapp.com/api/partner/account-bank/destination-account',
     data: reqBody
   }).then(function (response) {
-      return Response.Ok(res, {'bankName': response.data.TenKhachHang});
+      return Response.Ok(res, {'name': response.data.TenKhachHang});
     })
     .catch(function (err) {
       console.log(err)

@@ -121,8 +121,28 @@ function bank25RSAEncrypted(rawMessage, rawPublicKey) {
     return publicKey.encrypt(buffRawMessage, 'base64')
 }
 
+const pgpVerify = async (sign, hash) => {
+  try {
+    const verified = await openpgp.verify({
+    message: openpgp.cleartext.fromText(hash),              // CleartextMessage or Message object
+    signature: await openpgp.signature.readArmored(sign), // parse detached signature
+    publicKeys: (await openpgp.key.readArmored(myPublicPGPKey)).keys // for verification
+    });
+    const { valid } = verified.signatures[0];
+    if (valid) {
+        console.log("valid")
+        console.log('signed by key id ' + verified.signatures[0].keyid.toHex());
+    } else {
+        throw new Error('signature could not be verified');
+    }
+  } catch (error) {
+    console.log("er")
+    console.log(error)
+  }
+}
+
 const pgpSign = async (data) => {
-   // const privateKeyArmored = JSON.parse(`"${myPrivatePGPKey}"`); // convert '\n'
+  try {
     const passphrase = config.myBankName; // what the private key is encrypted with
     const { keys:[privateKey]}  = await openpgp.key.readArmored(myPrivatePGPKey);
     await privateKey.decrypt(passphrase);
@@ -132,11 +152,16 @@ const pgpSign = async (data) => {
         privateKeys: [privateKey],                            // for signing
         detached: true
     });
+    await pgpVerify(detachedSignature, data)
     return JSON.stringify(detachedSignature);
+  } catch (error) {
+    console.log(error)
+  }
 }
 module.exports = {
   VerifyRSASign: verifyRSASign,
   RSASign: rsaSign,
   PGPSign: pgpSign,
+  PGPVerify: pgpVerify,
   Bank25RSAEncrypted: bank25RSAEncrypted
 }

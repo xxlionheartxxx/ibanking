@@ -103,23 +103,44 @@ class DetailReceiver extends React.Component {
     this.state.unsubcribe()
   }
   handleClickCreate(){
-    axios({
-      method:`post`,
-      data:{
-        name: this.state.name,
-        bank_name: this.state.bank_name,
-        bank_number: this.state.bank_number,
-        bank_account_name: this.state.bank_account_name,
-      },
-      url:`${Config.BEUrl}/v1/accounts/receivers`,
-      headers:{"Authentication": `${localStorage.getItem('37ibanking.accessToken.customer')}`},
-    })
-      .then(resp => {
-        const listReceivers = store.getState().receiver.receivers
-        listReceivers.push(resp.data.data)
-        store.dispatch(setReceivers(listReceivers))
+    if (this.state.bank_name === "37Bank") {
+      axios({
+        method:`post`,
+        data:{
+          name: this.state.name,
+          bank_name: this.state.bank_name,
+          bank_number: this.state.bank_number,
+          bank_account_name: this.state.bank_account_name,
+        },
+        url:`${Config.BEUrl}/v1/accounts/receivers`,
+        headers:{"Authentication": `${localStorage.getItem('37ibanking.accessToken.customer')}`},
       })
-      .catch(error => {console.log(error)})
+        .then(resp => {
+          const listReceivers = store.getState().receiver.receivers
+          listReceivers.push(resp.data.data)
+          store.dispatch(setReceivers(listReceivers))
+        })
+        .catch(error => {console.log(error)})
+		}
+    if (this.state.bank_name !== "37Bank") {
+      axios({
+        method:`post`,
+        data:{
+          name: this.state.name,
+          bank_name: this.state.bank_name,
+          bank_number: this.state.bank_number,
+          bank_account_name: this.state.bank_account_name,
+        },
+        url:`${Config.BEUrl}/v1/accounts/receivers`,
+        headers:{"Authentication": `${localStorage.getItem('37ibanking.accessToken.customer')}`},
+      })
+        .then(resp => {
+          const listReceivers = store.getState().receiver.receivers
+          listReceivers.push(resp.data.data)
+          store.dispatch(setReceivers(listReceivers))
+        })
+        .catch(error => {console.log(error)})
+		}
   }
   handleClickUpdate(){
     const currentReceiver = store.getState().receiver.currentReceiver
@@ -150,19 +171,29 @@ class DetailReceiver extends React.Component {
       .then(_ => {})
       .catch(error => {console.log(error)})
   }
-  getAccountByBankNumber(number){
-    if (this.state.bank_name === "37Bank") {
+  getAccountByBankNumber(bankName, bankNumber){
+    if (bankName === "37Bank") {
       axios({
         method:`get`,
-        url:`${Config.BEUrl}/v1/accounts/${number}`,
+        url:`${Config.BEUrl}/v1/accounts/${bankNumber}`,
         headers:{"Authentication": `${localStorage.getItem('37ibanking.accessToken.customer')}`},
       })
         .then(resp => {
-          this.setState({bank_account_name: resp.data.data.name})
+          this.setState({bank_account_name: resp.data.data.name, name: resp.data.data.name})
         })
         .catch(error => {console.log(error)})
     }
-
+    if (bankName !== "37Bank") {
+      axios({
+        method:`get`,
+        url:`${Config.BEUrl}/v1/accounts/third-party?bankNumber=${bankNumber}&bankName=${bankName}`,
+        headers:{"Authentication": `${localStorage.getItem('37ibanking.accessToken.customer')}`},
+      })
+        .then(resp => {
+          this.setState({bank_account_name: resp.data.data.name, name: resp.data.data.name})
+        })
+        .catch(error => {console.log(error)})
+    }
   }
   render() {
     return (
@@ -184,7 +215,7 @@ class DetailReceiver extends React.Component {
               <Form.Control
                 className="mb-2 mr-sm-2"
                 value={this.state.bank_name || ""}
-                onChange={e => {this.setState({bank_name: e.target.value})}}
+                onChange={e => {this.setState({bank_name: e.target.value});this.getAccountByBankNumber(e.target.value, this.state.bank_number)}}
               />
             </Col>
           </Form.Group>
@@ -194,7 +225,7 @@ class DetailReceiver extends React.Component {
               <Form.Control
                 className="mb-2 mr-sm-2"
                 value={this.state.bank_number || ""}
-                onChange={e => {this.setState({bank_number: e.target.value}); this.getAccountByBankNumber(e.target.value)}}
+                onChange={e => {this.setState({bank_number: e.target.value}); ;this.getAccountByBankNumber(this.state.bank_name, e.target.value)}}
               />
             </Col>
           </Form.Group>
