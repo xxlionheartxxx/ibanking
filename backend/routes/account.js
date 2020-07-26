@@ -8,15 +8,65 @@ const config = require('../config/config.js')
 const moment = require('moment')
 const Response = require('../utils/response.js');
 const ibCrypto = require('../utils/cryto.js');
+const mail = require('../utils/mail.js');
 const axios = require('axios');
 const CryptoJS = require('crypto-js');
 const sequelize = require('../db/db.js');
+const redis = require('../redis/init.js');
 const { QueryTypes } = require('sequelize');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const router = require('./remind_debt.js');
 
+router.put('/forgot-password',[
+  check('username').notEmpty().withMessage('username is require'),
+], async(req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  try {
+    let account = await Account.getByUsername(req.body.username);
+    if (!account) {
+      return Response.SendMessaageRes(res.status(404), "Username is invalid")
+    }
+    otp = "" + moment()
+    redis.set(`otp_changepassword_${account.id}`, otp, "EX", 300)
+    mail.SendMail(account.email, GenContentOTPForgotPass(account.name, otp))
+    return Response.Ok(res, {})
+  } catch (error) {
+    return Response.SendMessaageRes(res.status(403), "Token expired")
+  }
+})
+
+router.put('/forgot-password/otp',[
+  check('username').notEmpty().withMessage('username is require'),
+  check('otp').notEmpty().withMessage('otp is require'),
+], async(req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  try {
+    let account = await Account.getByUsername(req.body.username);
+    if (!account) {
+      return Response.SendMessaageRes(res.status(404), "Username is invalid")
+    }
+    redis.get(`otp_changepassword_${account.id}`, (err, reply) => {
+      if (reply !== req.body.otp) { 
+        return Response.SendMessaageRes(res.status(404), "otp is invalid")
+      }
+    })
+    newPass = "" + moment()
+    mail.SendMail(account.email, GenContentForgotPass(account.name,newPass))
+    let pass = bcrypt.hashSync(newPass, config.saltRounds)
+    await Account.updatePassword(account.id, pass)
+    return Response.Ok(res, {})
+  } catch (error) {
+    return Response.SendMessaageRes(res.status(403), "Token expired")
+  }
+})
 
 router.put('/receivers/:id',[
   check('name').notEmpty().withMessage('name is require'),
@@ -311,7 +361,7 @@ router.post('/:bank_number/transfer',[
   }
 
   // Generate OTP
-  otp = "1234567"
+  otp = "" + moment()
   let newTransactionOTP = {}
   try {
     sourceTransaction = await Transaction.create(sourceTransaction, {transaction: t});
@@ -324,6 +374,7 @@ router.post('/:bank_number/transfer',[
       verified: false,
     }
     newTransactionOTP = await TransactionOTP.create(newTransactionOTP, {transaction: t});
+    mail.SendMail(sourceAccount.email, GenContentOTPMail(sourceAccount.name, otp))
     t.commit();
   } catch (error) {
     t.rollback();
@@ -333,7 +384,6 @@ router.post('/:bank_number/transfer',[
   // Send OTP
   return Response.Ok(res, {transaction_id: newTransactionOTP.id})
 })
-
 
 router.get('/', async(req, res) => {
   let token = req.headers["authentication"]
@@ -383,6 +433,32 @@ router.put('/login', [ check('username').notEmpty().withMessage('username is req
     "refreshToken":refreshToken,
     "accessToken":accessToken,
   });
+})
+
+router.put('/password', [
+  check('oldPass').notEmpty().withMessage('oldPass is require'),
+  check('newPass').notEmpty().withMessage('newPass is require'),
+], async(req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+ let token = req.headers["authentication"]
+  if (!token) {
+    return Response.SendMessaageRes(res.status(401), "Reqire login" )
+  }
+  try {
+    let decoded = jwt.verify(token, config.jwtSecret)
+    let account = await Account.getById(decoded.id)
+    if (!bcrypt.compareSync(req.body.oldPass, account.password)) {
+      return res.status(400).json({errors: [{errorCode: 400, message: "password is invalid"}]})
+    }
+    let pass = bcrypt.hashSync(req.body.newPass, config.saltRounds)
+    await Account.updatePassword(account.id, pass)
+    return Response.Ok(res, {})
+  } catch (error) {
+    return Response.SendMessaageRes(res.status(403), "Token expired")
+  }
 })
 
 router.put('/topup', [
@@ -619,6 +695,29 @@ function callGet25BankAccount(req, res, tpAccount) {
       console.log(err)
       return Response.SendMessaageRes(res.status(err.response.status), JSON.stringify(err.response.data))
     })
+}
+
+function GenContentForgotPass(name, pass) {
+  return `Chào ${name}, 
+37Bank xin gửi bạn mật khẩu  như sau: ${pass}.
+
+Xin đừng chia sẻ mã này với bất kỳ người nào.`
+}
+
+function GenContentOTPForgotPass(name, otp) {
+  return `Chào ${name}, 
+37Bank xin gửi bạn mã otp như sau: ${otp}.
+
+Xin đừng chia sẻ mã này với bất kỳ người nào.
+Mã này dùng để xác thực đổi mật khẩu của bạn.`
+}
+
+function GenContentOTPMail(name, otp) {
+  return `Chào ${name}, 
+37Bank xin gửi bạn mã otp như sau: ${otp}.
+
+Xin đừng chia sẻ mã này với bất kỳ người nào.
+Mã này dùng để xác thực chuyển khoản của bạn.`
 }
 
 module.exports = router;

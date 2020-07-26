@@ -110,6 +110,19 @@ Account.getByUsername = async (username) => {
   }
 };
 
+Account.updatePassword = async (accountId, pass, t) => {
+  try {
+   await database.query(
+      "UPDATE accounts SET password = :password WHERE id = :id", {
+        type: QueryTypes.UPDATE,
+        replacements: {password: pass, id: accountId},
+        transaction: t,
+      });
+  } catch (error) {
+    return error
+  }
+};
+
 Account.updateMoneyByNumber = async (money, accountNumber, t) => {
   try {
    await database.query(
