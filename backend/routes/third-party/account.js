@@ -21,7 +21,7 @@ router.get('/', [
   }
 
   let bankNumber = req.query.bankNumber;
-  let bankAccount = await Account.getByBankNumber(bankNumber);
+  let bankAccount = await Account.getByAccountNumber(bankNumber);
   if (!bankAccount) {
     return Response.SendMessaageRes(res.status(400), "bankNumber is not exists");
   }
@@ -42,7 +42,7 @@ router.post('/topup',  async (req, res) => {
     return Response.SendMessaageRes(res.status(400), "Duplicate request id")
   }
 
-  let account = await Account.getByBankNumber(req.body.bankNumber);
+  let account = await Account.getByAccountNumber(req.body.bankNumber);
   if (!account || account.id <= 0) {
     return Response.SendMessaageRes(res.status(400), "bankNumber is invalid");
   }
@@ -85,6 +85,8 @@ function validateTopupSign() {
       return res.status(400).json({ errors: [{ errorCode: 400, message: 'amount is invalid'}] });
     }
     let rawSign = req.body.bankNumber + req.body.requestId + req.body.amount + (req.body.message || '')
+    console.log(thirdPartyAccount.pub_rsa_key, req.body.signature, rawSign)
+    console.log(req.body.requestId)
     if (!ibCrypto.VerifyRSASign(thirdPartyAccount.pub_rsa_key, req.body.signature, rawSign)) {
       return Response.SendMessaageRes(res.status(400), "Sign is invalid")
     }

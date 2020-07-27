@@ -12,7 +12,7 @@ const mail = require('../utils/mail.js');
 const axios = require('axios');
 const CryptoJS = require('crypto-js');
 const sequelize = require('../db/db.js');
-const redis = require('../redis/init.js');
+const ForgotPassOTP = require('../models/forgot_pass_otp.js');
 const { QueryTypes } = require('sequelize');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -31,9 +31,15 @@ router.put('/forgot-password',[
     if (!account) {
       return Response.SendMessaageRes(res.status(404), "Username is invalid")
     }
-    otp = "" + moment()
-    redis.set(`otp_changepassword_${account.id}`, otp, "EX", 300)
-    mail.SendMail(account.email, GenContentOTPForgotPass(account.name, otp))
+    otpStr = "" + moment()
+    let otp = await ForgotPassOTP.getByAccountId(account.id)
+    if (otp) {
+      await ForgotPassOTP.updateByAccountId(account.id, otpStr)
+    } else {
+      otp = {account_id: account.id, otp: otpStr}
+      await ForgotPassOTP.create(otp)
+    }
+    mail.SendMail(account.email, GenContentOTPForgotPass(account.name, otpStr))
     return Response.Ok(res, {})
   } catch (error) {
     return Response.SendMessaageRes(res.status(403), "Token expired")
@@ -53,11 +59,10 @@ router.put('/forgot-password/otp',[
     if (!account) {
       return Response.SendMessaageRes(res.status(404), "Username is invalid")
     }
-    redis.get(`otp_changepassword_${account.id}`, (err, reply) => {
-      if (reply !== req.body.otp) { 
-        return Response.SendMessaageRes(res.status(404), "otp is invalid")
-      }
-    })
+    let otp = await ForgotPassOTP.getByAccountId(account.id)
+    if (otp.otp !== req.body.otp) {
+      return Response.SendMessaageRes(res.status(404), "Otp is invalid")
+    }
     newPass = "" + moment()
     mail.SendMail(account.email, GenContentForgotPass(account.name,newPass))
     let pass = bcrypt.hashSync(newPass, config.saltRounds)
