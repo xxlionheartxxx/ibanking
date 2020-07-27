@@ -4,7 +4,7 @@ const dbConfig = require('../config/config.js').dbConfig;
 // your credentials
 DATABASE_URL = `postgres://${dbConfig.user}:${dbConfig.password}@${dbConfig.host}:${dbConfig.port}/${dbConfig.db}`;
 
-const database = new Sequelize(DATABASE_URL);
+const database = new Sequelize(process.env.DATABASE_URL || DATABASE_URL);
 
 try {
   database.authenticate();
