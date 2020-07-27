@@ -1,1 +1,7 @@
 node_modules
+backend/.git
+backend/.gitignore
+frontend/customer/.git
+frontend/customer/.gitignore
+frontend/employee/.git
+frontend/employee/.gitignore
