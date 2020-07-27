@@ -650,7 +650,7 @@ function callGet24BankAccount(req, res, tpAccount) {
 }
 
 async function callTopup25BankAccount(req, res, tpAccount) {
-  let tpBankNumber = req.body.bankNumber1;
+  let tpBankNumber = req.body.bankNumber;
   let toEncrypted = JSON.stringify({
     'BankName': config.myBankName,
     'DestinationAccountNumber': Number(tpBankNumber),

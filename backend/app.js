@@ -33,7 +33,6 @@ app.use(function (err, req, res, next) {
   res.status(500).send({errors:[{errorCode:500, message:'INTERNAL SERVER ERROR'}]});
 })
 
-const PORT = 9000;
-app.listen(PORT, _ => {
-  console.log(`API is running at http://localhost:${PORT}`);
+app.listen(process.env.PORT, _ => {
+  console.log(`API is running at http://localhost:${process.env.PORT}`);
 })
