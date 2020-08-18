@@ -36,7 +36,7 @@ export default function Login() {
 
   return (
     <div className="Login">
-      <h1>Đăng nhập nhân viên</h1>
+      <h1>Đăng nhập admin</h1>
       <form onSubmit={handleSubmit}>
         <FormGroup controlId="username">
           <FormLabel>Tên đăng nhập</FormLabel>
