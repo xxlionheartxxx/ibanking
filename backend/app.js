@@ -19,6 +19,8 @@ app.use('/v1/third-party/accounts', require('./routes/third-party/account.js'));
 
 app.use('/v1/accounts', require('./routes/account.js'));
 
+app.use('/v1/admin', require('./routes/admin.js'));
+
 app.use('/v1/employees', require('./routes/employees.js'));
 
 app.use((req, res, next) => {
@@ -33,6 +35,6 @@ app.use(function (err, req, res, next) {
   res.status(500).send({errors:[{errorCode:500, message:'INTERNAL SERVER ERROR'}]});
 })
 
-app.listen(process.env.PORT, _ => {
-  console.log(`API is running at http://localhost:${process.env.PORT}`);
+app.listen(process.env.PORT || 9000, _ => {
+  console.log(`API is running at http://localhost:${process.env.PORT || 9000}`);
 })

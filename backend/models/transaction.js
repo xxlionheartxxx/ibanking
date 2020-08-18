@@ -1,5 +1,7 @@
 const Sequelize = require('sequelize');
+const Op = Sequelize.Op;
 const database = require('../db/db.js');
+const moment = require('moment');
 const { QueryTypes } = require('sequelize');
 
 const Transaction = database.define(
@@ -48,6 +50,38 @@ Transaction.typeTopup = "topup"
 Transaction.typeBankTransfer = "bank_transfer"
 Transaction.typeDebtRemind = "debt_remind"
 Transaction.types = [Transaction.typeTopup, Transaction.typeBankTransfer, Transaction.typeDebtRemind]
+Transaction.getByBankNameAndDate = async (bankName, from, to, page, limit) => {
+  try {
+    let where = {}
+    if (bankName && ["37Bank", "24Bank", "25Bank"].includes(bankName)) {
+      where.bank_name = bankName
+    }
+    if (from && from > 0) {
+      where.created_at = {
+        "$gt": moment.unix(from)
+      }
+    }
+    if (to && to > 0) {
+      where.created_at = {
+        "$lt": moment.unix(to)
+      }
+    }
+    if (to && from && from >0 && to > 0) {
+      where.created_at = {
+        [Op.between]: [moment.unix(from).format(), moment.unix(to).format()],
+      }
+    }
+    const transactions = await Transaction.findAll({
+      where,
+      offset: (page-1)*limit || 0,
+      order: [['created_at', 'DESC']],
+      raw: true
+    });
+    return transactions
+  } catch (error) {
+    throw error
+  }
+};
 Transaction.getByAccountNumberAndType = async (accountNumber, type, page, limit) => {
   try {
     const transactions = await Transaction.findAll({
@@ -56,14 +90,13 @@ Transaction.getByAccountNumberAndType = async (accountNumber, type, page, limit)
         status: Transaction.statusDone,
         type: type || Transaction.types
       },
-      limit: limit || 20,
       offset: (page-1)*limit || 0,
       order: [['created_at', 'DESC']],
       raw: true
     });
     return transactions
   } catch (error) {
-    throw new  error
+    throw error
   }
 };
 

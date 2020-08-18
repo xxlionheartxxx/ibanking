@@ -1,0 +1,21 @@
+@media all and (min-width: 480px) {
+  .Login {
+    padding: 60px 0;
+  }
+
+  .Login form {
+    margin: 0 auto;
+    max-width: 380px;
+  }
+
+  .Login h1 {
+    margin: 0 auto;
+    max-width: 380px;
+    padding: 40px 0;
+  }
+
+  .WarningLogin {
+    color: red;
+  }
+
+}

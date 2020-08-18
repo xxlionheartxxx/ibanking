@@ -1,8 +1,12 @@
-import React from 'react';
+import React , { Component } from 'react';
 import { Table, Form } from "react-bootstrap";
 import axios from 'axios';
 import './stype/History.css';
 import Config from '../config/config';
+import DateRangePicker from 'react-bootstrap-daterangepicker';
+import 'bootstrap/dist/css/bootstrap.css';
+import 'bootstrap-daterangepicker/daterangepicker.css';
+
 
 class TableHistory extends React.Component {
   cell(content,header) {
@@ -62,29 +66,20 @@ class History extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      accountNumber: "",
-      isTopup: false,
-      isBankTransfer: false,
-      isDebtRemind: false,
+      bankName: "",
+      from: 0,
+      to: 0,
       rows: [],
     };
     this.handleSubmit = this.handleSubmit.bind(this);
   }
   callAPI() {
-    let types = []
-    if (this.state.isTopup) {
-      types = types.concat('topup')
-    }
-    if (this.state.isBankTransfer) {
-      types = types.concat('bank_transfer')
-    }
-    if (this.state.isDebtRemind) {
-      types = types.concat('debt_remind')
-    }
+    let from=this.state.from
+    let to=this.state.to
     axios({
       method:"get",
-      url:`${Config.BEUrl}/v1/accounts/history-transactions?accountNumber=${this.state.accountNumber}&types=${types}`,
-      headers:{"Authentication": `${localStorage.getItem('37ibanking.accessToken.admin')}`},
+      url:`${Config.BEUrl}/v1/admin/history-transactions?bankName=${this.state.bankName}&from=${from}&to=${to}`,
+      headers:{"Authentication": `${localStorage.getItem('37ibanking.accessToken.employee')}`},
     })
         .then(resp => {
           this.setState({rows: resp.data.data})
@@ -104,6 +99,7 @@ class History extends React.Component {
         'type',
         'account_number',
         'amount',
+        'bank_name',
         'created_at',
         'updated_at',
       ];
@@ -112,24 +108,31 @@ class History extends React.Component {
       <div>
         <Form onSubmit={this.handleSubmit}>
            <Form.Group>
-             <div className="History">
-               <Form.Control 
-                 placeholder="Nhập tài khoản 370000" 
-                 onChange={e => this.setState({accountNumber: e.target.value})}
-               />
-             </div>
+             <DateRangePicker
+               initialSettings={{ startDate: '1/6/2020', endDate: '1/7/2020' }}
+               onApply={(e,picker)=> {
+                this.setState({from:picker.startDate.format("X")})
+                this.setState({to:picker.endDate.format("X")})
+                this.handleSubmit(e)
+               }}
+             >
+               <a>Date Range</a>
+             </DateRangePicker>
           </Form.Group>
            <Form.Group controlId="formGroupEmail">
             <div key={`inline-checkbox`} className="mb-3">
               <p style={{display:'inline-flex', 'margin-right':'.75rem'}}>Loại: </p>
-              <Form.Check inline label="topup" type="checkbox" id={`inline-checkbox-1`}
-                onChange={e => this.setState({isTopup: e.target.checked})}
+              <Form.Check inline label="all" type="checkbox" id={`inline-checkbox-1`}
+                onChange={_ => this.setState({bankName: "all"})}
               />
-              <Form.Check inline label="bank_transfer" type="checkbox" id={`inline-checkbox-2`} 
-                onChange={e => this.setState({isBankTransfer: e.target.checked})}
+              <Form.Check inline label="37Bank" type="checkbox" id={`inline-checkbox-2`} 
+                onChange={_ => this.setState({bankName: "37Bank"})}
               />
-              <Form.Check inline label="debt_remind" type="checkbox" id={`inline-checkbox-3`} 
-                onChange={e => this.setState({isDebtRemind: e.target.checked})}
+              <Form.Check inline label="24Bank" type="checkbox" id={`inline-checkbox-3`} 
+                onChange={_ => this.setState({bankName: "24Bank"})}
+              />
+              <Form.Check inline label="25Bank" type="checkbox" id={`inline-checkbox-3`} 
+                onChange={_ => this.setState({bankName: "25Bank"})}
               />
             </div>
           </Form.Group>
