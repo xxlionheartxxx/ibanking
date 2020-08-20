@@ -52,7 +52,9 @@ Transaction.typeDebtRemind = "debt_remind"
 Transaction.types = [Transaction.typeTopup, Transaction.typeBankTransfer, Transaction.typeDebtRemind]
 Transaction.getByBankNameAndDate = async (bankName, from, to, page, limit) => {
   try {
-    let where = {}
+    let where = {
+      status: Transaction.statusDone,
+    }
     if (bankName && ["37Bank", "24Bank", "25Bank"].includes(bankName)) {
       where.bank_name = bankName
     }
