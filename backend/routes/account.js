@@ -250,7 +250,7 @@ router.get('/:bank_number',async(req, res)=> {
 
 router.post('/:bank_number/transfer/otp', [
   check('transaction_id').notEmpty().withMessage('bank_number is require'),
-  check('otp').notEmpty().withMessage('bank_name is require'),
+  check('otp').notEmpty().withMessage('otp is require'),
 ], async(req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -494,6 +494,7 @@ router.put('/topup', [
   // New transaction
   let newTransaction = {
     account_number: account.number,
+    bank_name: config.myBankName,
     amount: req.body.amount,
     type: Transaction.typeTopup,
     status: Transaction.statusDone,

@@ -58,7 +58,17 @@ class DetailTranferReceiver extends React.Component {
         })
         .catch(error => {console.log(error)})
     }
-
+    if (this.state.bank_name !== "37Bank") {
+      axios({
+        method:`get`,
+        url:`${Config.BEUrl}/v1/accounts/third-party?bankNumber=${number}&bankName=${this.state.bank_name}`,
+        headers:{"Authentication": `${localStorage.getItem('37ibanking.accessToken.customer')}`},
+      })
+        .then(resp => {
+          this.setState({bank_account_name: resp.data.data.name, name: resp.data.data.name})
+        })
+        .catch(error => {console.log(error)})
+    }
   }
   handleClickSend() {
     axios({
