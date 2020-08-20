@@ -79,7 +79,7 @@ class History extends React.Component {
     axios({
       method:"get",
       url:`${Config.BEUrl}/v1/admin/history-transactions?bankName=${this.state.bankName}&from=${from}&to=${to}`,
-      headers:{"Authentication": `${localStorage.getItem('37ibanking.accessToken.employee')}`},
+      headers:{"Authentication": `${localStorage.getItem('37ibanking.accessToken.admin')}`},
     })
         .then(resp => {
           this.setState({rows: resp.data.data})
