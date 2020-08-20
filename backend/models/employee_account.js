@@ -38,6 +38,18 @@ const EmployeeAccount = database.define(
   { timestamps: false }
 );
 
+EmployeeAccount.deleteById = async(id) => {
+  try {
+    await EmployeeAccount.destroy({
+      where: {
+        id: id,
+      }
+    })
+  } catch (error) {
+  }
+}
+
+
 EmployeeAccount.getByUsername = async (username) => {
   try {
     const account = await EmployeeAccount.findOne({
@@ -64,5 +76,14 @@ EmployeeAccount.updateRefreshTokenByAccountId = async (accountId, refreshToken) 
     return error
   }
 };
+
+EmployeeAccount.list = async () => {
+  try {
+    const employees = await EmployeeAccount.findAll();
+    return employees
+  } catch (error) {
+    return error
+  }
+}
 
 module.exports = EmployeeAccount;

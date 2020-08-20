@@ -18,7 +18,7 @@ class Main extends React.Component {
              <Nav.Link as={Link} to="/history">Lịch sử giao dịch</Nav.Link>
           </Nav.Item>
           <Nav.Item>
-             <Nav.Link as={Link} to="/topup">Nhân viên</Nav.Link>
+             <Nav.Link as={Link} to="/employee">Nhân viên</Nav.Link>
           </Nav.Item>
         </Nav>
         <Switch>

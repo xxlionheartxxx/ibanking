@@ -1,4 +1,4 @@
-import React , { Component } from 'react';
+import React from 'react';
 import { Table, Form } from "react-bootstrap";
 import axios from 'axios';
 import './stype/History.css';
@@ -121,19 +121,14 @@ class History extends React.Component {
           </Form.Group>
            <Form.Group controlId="formGroupEmail">
             <div key={`inline-checkbox`} className="mb-3">
-              <p style={{display:'inline-flex', 'margin-right':'.75rem'}}>Loại: </p>
-              <Form.Check inline label="all" type="checkbox" id={`inline-checkbox-1`}
-                onChange={_ => this.setState({bankName: "all"})}
-              />
-              <Form.Check inline label="37Bank" type="checkbox" id={`inline-checkbox-2`} 
-                onChange={_ => this.setState({bankName: "37Bank"})}
-              />
-              <Form.Check inline label="24Bank" type="checkbox" id={`inline-checkbox-3`} 
-                onChange={_ => this.setState({bankName: "24Bank"})}
-              />
-              <Form.Check inline label="25Bank" type="checkbox" id={`inline-checkbox-3`} 
-                onChange={_ => this.setState({bankName: "25Bank"})}
-              />
+              <Form.Control as="select" custom
+                onChange={e => this.setState({bankName:e.target.value})}
+              >
+                <option>all</option>
+                <option>37Bank</option>
+                <option>24Bank</option>
+                <option>25Bank</option>
+              </Form.Control>
             </div>
           </Form.Group>
         </Form>

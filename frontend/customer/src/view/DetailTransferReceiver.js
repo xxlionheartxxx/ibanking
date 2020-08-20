@@ -1,4 +1,5 @@
 import React from 'react';
+import {setReceivers} from '../action/Receiver.js'
 import { Button, Modal, Form, Row, Col } from "react-bootstrap";
 import store from '../store/init.js'
 import axios from 'axios';
@@ -11,6 +12,7 @@ class DetailTranferReceiver extends React.Component {
       bank_number:"",
       bank_name:"",
       bank_account_name:"",
+      save_account:false,
       money:"",
       message:"",
       otp:"",
@@ -22,6 +24,7 @@ class DetailTranferReceiver extends React.Component {
     this.handleReceiversChange = this.handleReceiversChange.bind(this);
     this.handleClickSend = this.handleClickSend.bind(this);
     this.handleCloseOTP = this.handleCloseOTP.bind(this);
+    this.saveAccount = this.saveAccount.bind(this);
     this.handleClickSendOTP = this.handleClickSendOTP.bind(this);
   }
   handleCloseOTP() {
@@ -71,6 +74,7 @@ class DetailTranferReceiver extends React.Component {
       },
     })
       .then(resp => {
+        this.saveAccount()
         this.setState({showOTP: true, transaction_id: resp.data.data.transaction_id})
       })
       .catch(error => {console.log(error)})
@@ -90,6 +94,25 @@ class DetailTranferReceiver extends React.Component {
       bank_account_name: newCurrentReceiver.bank_account_name, 
     })
     this.render()
+  }
+  saveAccount(){
+    axios({
+      method:`post`,
+      data:{
+        name: this.state.bank_account_name,
+        bank_name: this.state.bank_name,
+        bank_number: this.state.bank_number,
+        bank_account_name: this.state.bank_account_name,
+      },
+      url:`${Config.BEUrl}/v1/accounts/receivers`,
+      headers:{"Authentication": `${localStorage.getItem('37ibanking.accessToken.customer')}`},
+    })
+      .then(resp => {
+        const listReceivers = store.getState().receiver.receivers
+        listReceivers.push(resp.data.data)
+        store.dispatch(setReceivers(listReceivers))
+      })
+      .catch(error => {console.log(error)})
   }
   componentDidMount() {
     const unsubcribe = store.subscribe(this.handleReceiversChange)
@@ -153,6 +176,19 @@ class DetailTranferReceiver extends React.Component {
                 onChange={e => {this.setState({message: e.target.value})}}
               />
             </Col>
+          </Form.Group>
+          <Form.Group as={Row}>
+            <div key={`inline-checkbox`} className="mb-3">
+              <Form.Check inline label="Lưu người nhận" type="checkbox" id={`inline-checkbox-2`} 
+                onChange={e => {
+                  if (e.target.checked) {
+                    this.setState({save_account:true})
+                  } else {
+                    this.setState({save_account:false})
+                  }
+                }}
+              />
+            </div>
           </Form.Group>
           <Form.Group as={Row}>
             <Form.Control as="select" custom onChange={e=>{this.setState({feeForMe: e.target.value==='Người gửi trả phí'? true:false})}}>
